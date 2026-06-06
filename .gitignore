@@ -1,0 +1,39 @@
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+hms-master.code-workspace
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+vendor/
+node_modules/
+
+# Data / Caches
+backups/*
+!backups/.gitkeep
+uploads/*
+!uploads/.gitkeep
+exports/*
+!exports/.gitkeep
+logs/*
+!logs/.gitkeep
+application/cache/*
+!application/cache/.gitkeep
+tmp/
+*.sql
+*.log
+
+# AI/Agent metadata
+.devin/
+artifacts/
+
+# Miscellaneous
+public/patient_attachment/*
+!public/patient_attachment/.gitkeep

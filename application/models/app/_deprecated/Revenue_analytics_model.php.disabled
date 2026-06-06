@@ -1,0 +1,393 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/**
+ * Revenue Analytics Model
+ * Revenue Intelligence & Analytics Engine
+ * 
+ * @author HMS Enterprise Architect
+ * @version 1.0
+ */
+class Revenue_analytics_model extends CI_Model
+{
+    public function __construct()
+    {
+        parent::__construct();
+    }
+    
+    /**
+     * Get today's revenue summary
+     */
+    public function get_today_revenue()
+    {
+        $today = date('Y-m-d');
+        
+        $sql = "SELECT 
+                    COALESCE(SUM(payment_amount), 0) as total_revenue,
+                    COUNT(*) as transaction_count
+                FROM eb_payments 
+                WHERE DATE(payment_date) = ? 
+                AND payment_status = 'COMPLETED'";
+        
+        $result = $this->db->query($sql, [$today])->row();
+        
+        return [
+            'total' => (float)($result->total_revenue ?? 0),
+            'count' => (int)($result->transaction_count ?? 0)
+        ];
+    }
+    
+    /**
+     * Get weekly revenue summary
+     */
+    public function get_weekly_revenue()
+    {
+        $start = date('Y-m-d', strtotime('monday this week'));
+        $end = date('Y-m-d');
+        
+        $sql = "SELECT 
+                    COALESCE(SUM(payment_amount), 0) as total_revenue,
+                    COUNT(*) as transaction_count
+                FROM eb_payments 
+                WHERE DATE(payment_date) BETWEEN ? AND ?
+                AND payment_status = 'COMPLETED'";
+        
+        $result = $this->db->query($sql, [$start, $end])->row();
+        
+        return [
+            'total' => (float)($result->total_revenue ?? 0),
+            'count' => (int)($result->transaction_count ?? 0),
+            'start_date' => $start,
+            'end_date' => $end
+        ];
+    }
+    
+    /**
+     * Get monthly revenue summary
+     */
+    public function get_monthly_revenue()
+    {
+        $start = date('Y-m-01');
+        $end = date('Y-m-d');
+        
+        $sql = "SELECT 
+                    COALESCE(SUM(payment_amount), 0) as total_revenue,
+                    COUNT(*) as transaction_count
+                FROM eb_payments 
+                WHERE DATE(payment_date) BETWEEN ? AND ?
+                AND payment_status = 'COMPLETED'";
+        
+        $result = $this->db->query($sql, [$start, $end])->row();
+        
+        return [
+            'total' => (float)($result->total_revenue ?? 0),
+            'count' => (int)($result->transaction_count ?? 0),
+            'start_date' => $start,
+            'end_date' => $end
+        ];
+    }
+    
+    /**
+     * Get outstanding balance total
+     */
+    public function get_outstanding_balance()
+    {
+        $sql = "SELECT COALESCE(SUM(amount_outstanding), 0) as total
+                FROM eb_invoices 
+                WHERE payment_status != 'PAID' 
+                AND amount_outstanding > 0";
+        
+        $result = $this->db->query($sql)->row();
+        return (float)($result->total ?? 0);
+    }
+    
+    /**
+     * Get revenue by payment method for a date range
+     */
+    public function get_revenue_by_payment_method($date_from, $date_to)
+    {
+        $sql = "SELECT 
+                    payment_method,
+                    COALESCE(SUM(payment_amount), 0) as total,
+                    COUNT(*) as count
+                FROM eb_payments 
+                WHERE DATE(payment_date) BETWEEN ? AND ?
+                AND payment_status = 'COMPLETED'
+                GROUP BY payment_method
+                ORDER BY total DESC";
+        
+        return $this->db->query($sql, [$date_from, $date_to])->result();
+    }
+    
+    /**
+     * Get department revenue for a date range
+     */
+    public function get_department_revenue($date_from, $date_to)
+    {
+        // First try from billing_department_revenue if populated
+        if ($this->db->table_exists('billing_department_revenue')) {
+            $sql = "SELECT 
+                        department,
+                        COALESCE(SUM(amount), 0) as total,
+                        COUNT(*) as count
+                    FROM billing_department_revenue 
+                    WHERE revenue_date BETWEEN ? AND ?
+                    GROUP BY department
+                    ORDER BY total DESC";
+            
+            $result = $this->db->query($sql, [$date_from, $date_to])->result();
+            if (!empty($result)) {
+                return $result;
+            }
+        }
+        
+        // Fallback to eb_transactions
+        $sql = "SELECT 
+                    department,
+                    COALESCE(SUM(net_amount), 0) as total,
+                    COUNT(*) as count
+                FROM eb_transactions 
+                WHERE DATE(created_at) BETWEEN ? AND ?
+                AND billing_status IN ('BILLED', 'PAID', 'LEGACY_BILLED')
+                AND is_active = 1
+                GROUP BY department
+                ORDER BY total DESC";
+        
+        return $this->db->query($sql, [$date_from, $date_to])->result();
+    }
+    
+    /**
+     * Get top revenue departments
+     */
+    public function get_top_departments($limit = 5, $date_from = null, $date_to = null)
+    {
+        $date_from = $date_from ?? date('Y-m-01');
+        $date_to = $date_to ?? date('Y-m-d');
+        
+        $departments = $this->get_department_revenue($date_from, $date_to);
+        return array_slice($departments, 0, $limit);
+    }
+    
+    /**
+     * Get today's invoices count
+     */
+    public function get_today_invoices_count()
+    {
+        $today = date('Y-m-d');
+        
+        $this->db->where('DATE(created_at)', $today);
+        return $this->db->count_all_results('eb_invoices');
+    }
+    
+    /**
+     * Get cash vs insurance breakdown
+     */
+    public function get_payer_type_breakdown($date_from, $date_to)
+    {
+        $sql = "SELECT 
+                    CASE 
+                        WHEN payer_type IN ('NHIS', 'INSURANCE') THEN 'INSURANCE'
+                        ELSE 'CASH'
+                    END as payer_category,
+                    COALESCE(SUM(net_amount), 0) as total,
+                    COUNT(*) as count
+                FROM eb_transactions 
+                WHERE DATE(created_at) BETWEEN ? AND ?
+                AND billing_status IN ('BILLED', 'PAID', 'LEGACY_BILLED')
+                AND is_active = 1
+                GROUP BY payer_category";
+        
+        return $this->db->query($sql, [$date_from, $date_to])->result();
+    }
+    
+    /**
+     * Get pending payments count and amount
+     */
+    public function get_pending_payments()
+    {
+        $sql = "SELECT 
+                    COUNT(*) as count,
+                    COALESCE(SUM(amount_outstanding), 0) as total
+                FROM eb_invoices 
+                WHERE payment_status IN ('PENDING', 'PARTIAL')
+                AND amount_outstanding > 0";
+        
+        $result = $this->db->query($sql)->row();
+        
+        return [
+            'count' => (int)($result->count ?? 0),
+            'total' => (float)($result->total ?? 0)
+        ];
+    }
+    
+    /**
+     * Get refunds today
+     */
+    public function get_today_refunds()
+    {
+        $today = date('Y-m-d');
+        
+        if (!$this->db->table_exists('billing_refunds')) {
+            return ['count' => 0, 'total' => 0];
+        }
+        
+        $sql = "SELECT 
+                    COUNT(*) as count,
+                    COALESCE(SUM(amount), 0) as total
+                FROM billing_refunds 
+                WHERE DATE(created_at) = ?
+                AND status IN ('APPROVED', 'COMPLETED')";
+        
+        $result = $this->db->query($sql, [$today])->row();
+        
+        return [
+            'count' => (int)($result->count ?? 0),
+            'total' => (float)($result->total ?? 0)
+        ];
+    }
+    
+    /**
+     * Get daily revenue trend for last N days
+     */
+    public function get_daily_revenue_trend($days = 30)
+    {
+        $sql = "SELECT 
+                    DATE(payment_date) as date,
+                    COALESCE(SUM(payment_amount), 0) as total,
+                    COUNT(*) as count
+                FROM eb_payments 
+                WHERE payment_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                AND payment_status = 'COMPLETED'
+                GROUP BY DATE(payment_date)
+                ORDER BY date ASC";
+        
+        return $this->db->query($sql, [$days])->result();
+    }
+    
+    /**
+     * Get hourly revenue distribution for today
+     */
+    public function get_hourly_distribution()
+    {
+        $today = date('Y-m-d');
+        
+        $sql = "SELECT 
+                    HOUR(payment_date) as hour,
+                    COALESCE(SUM(payment_amount), 0) as total,
+                    COUNT(*) as count
+                FROM eb_payments 
+                WHERE DATE(payment_date) = ?
+                AND payment_status = 'COMPLETED'
+                GROUP BY HOUR(payment_date)
+                ORDER BY hour ASC";
+        
+        return $this->db->query($sql, [$today])->result();
+    }
+    
+    /**
+     * Get cashier performance
+     */
+    public function get_cashier_performance($date_from, $date_to)
+    {
+        // Check which user column exists in eb_payments
+        $column = null;
+        $possible_columns = ['received_by', 'created_by', 'user_id', 'cashier_id'];
+        
+        foreach ($possible_columns as $col) {
+            $q = $this->db->query("SHOW COLUMNS FROM eb_payments LIKE " . $this->db->escape($col));
+            if ($q && $q->num_rows() > 0) {
+                $column = $col;
+                break;
+            }
+        }
+        
+        // If no user column found, return empty result
+        if (!$column) {
+            return array();
+        }
+        
+        $sql = "SELECT 
+                    p.{$column} as user_id,
+                    u.username,
+                    CONCAT(u.firstname, ' ', u.lastname) as full_name,
+                    COUNT(*) as transaction_count,
+                    COALESCE(SUM(p.payment_amount), 0) as total_collected
+                FROM eb_payments p
+                LEFT JOIN users u ON u.user_id = p.{$column}
+                WHERE DATE(p.payment_date) BETWEEN ? AND ?
+                AND p.payment_status = 'COMPLETED'
+                GROUP BY p.{$column}
+                ORDER BY total_collected DESC";
+        
+        return $this->db->query($sql, [$date_from, $date_to])->result();
+    }
+    
+    /**
+     * Get revenue comparison (this period vs last period)
+     */
+    public function get_revenue_comparison($period = 'month')
+    {
+        switch ($period) {
+            case 'week':
+                $current_start = date('Y-m-d', strtotime('monday this week'));
+                $current_end = date('Y-m-d');
+                $previous_start = date('Y-m-d', strtotime('monday last week'));
+                $previous_end = date('Y-m-d', strtotime('sunday last week'));
+                break;
+            case 'month':
+            default:
+                $current_start = date('Y-m-01');
+                $current_end = date('Y-m-d');
+                $previous_start = date('Y-m-01', strtotime('first day of last month'));
+                $previous_end = date('Y-m-t', strtotime('last month'));
+                break;
+        }
+        
+        // Current period
+        $sql = "SELECT COALESCE(SUM(payment_amount), 0) as total
+                FROM eb_payments 
+                WHERE DATE(payment_date) BETWEEN ? AND ?
+                AND payment_status = 'COMPLETED'";
+        
+        $current = $this->db->query($sql, [$current_start, $current_end])->row();
+        $previous = $this->db->query($sql, [$previous_start, $previous_end])->row();
+        
+        $current_total = (float)($current->total ?? 0);
+        $previous_total = (float)($previous->total ?? 0);
+        
+        $change = 0;
+        if ($previous_total > 0) {
+            $change = (($current_total - $previous_total) / $previous_total) * 100;
+        }
+        
+        return [
+            'current' => $current_total,
+            'previous' => $previous_total,
+            'change_percent' => round($change, 1),
+            'change_direction' => $change >= 0 ? 'up' : 'down'
+        ];
+    }
+    
+    /**
+     * Get analytics dashboard summary
+     */
+    public function get_dashboard_summary()
+    {
+        $today = date('Y-m-d');
+        $month_start = date('Y-m-01');
+        
+        return [
+            'today' => $this->get_today_revenue(),
+            'weekly' => $this->get_weekly_revenue(),
+            'monthly' => $this->get_monthly_revenue(),
+            'outstanding' => $this->get_outstanding_balance(),
+            'pending_payments' => $this->get_pending_payments(),
+            'refunds_today' => $this->get_today_refunds(),
+            'invoices_today' => $this->get_today_invoices_count(),
+            'top_departments' => $this->get_top_departments(5, $month_start, $today),
+            'payment_methods' => $this->get_revenue_by_payment_method($month_start, $today),
+            'payer_breakdown' => $this->get_payer_type_breakdown($month_start, $today),
+            'monthly_comparison' => $this->get_revenue_comparison('month')
+        ];
+    }
+}

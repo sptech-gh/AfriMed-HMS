@@ -1,0 +1,885 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/**
+ * Enterprise Billing Model
+ * 
+ * SINGLE SOURCE OF TRUTH for all HMS billing operations.
+ * All billing must flow through this model - no exceptions.
+ * 
+ * Architecture:
+ * - Event-driven billing (services trigger billing events)
+ * - Service gates (payment verification before service execution)
+ * - Ledger-based accounting (double-entry for all transactions)
+ * - Multi-payer support (Cash, NHIS, Insurance, Corporate)
+ * 
+ * @author HMS Enterprise Architect
+ * @version 2.0
+ */
+class Enterprise_billing_model extends CI_Model
+{
+    /* ================================================================== */
+    /*  CONSTANTS                                                          */
+    /* ================================================================== */
+    
+    // Billing Status
+    const STATUS_PENDING = 'PENDING';
+    const STATUS_INVOICED = 'INVOICED';
+    const STATUS_PAID = 'PAID';
+    const STATUS_PARTIAL = 'PARTIAL';
+    const STATUS_CANCELLED = 'CANCELLED';
+    const STATUS_WAIVED = 'WAIVED';
+    const STATUS_DEFERRED = 'DEFERRED';
+    
+    // Charge Types
+    const CHARGE_REGISTRATION = 'REGISTRATION';
+    const CHARGE_CONSULTATION = 'CONSULTATION';
+    const CHARGE_LAB = 'LAB';
+    const CHARGE_PHARMACY = 'PHARMACY';
+    const CHARGE_RADIOLOGY = 'RADIOLOGY';
+    const CHARGE_SONOGRAPHY = 'SONOGRAPHY';
+    const CHARGE_PROCEDURE = 'PROCEDURE';
+    const CHARGE_ADMISSION = 'ADMISSION';
+    const CHARGE_ROOM = 'ROOM';
+    const CHARGE_SURGERY = 'SURGERY';
+    const CHARGE_NURSING = 'NURSING';
+    const CHARGE_CONSUMABLE = 'CONSUMABLE';
+    const CHARGE_OTHER = 'OTHER';
+    
+    // Payer Types
+    const PAYER_CASH = 'CASH';
+    const PAYER_NHIS = 'NHIS';
+    const PAYER_INSURANCE = 'INSURANCE';
+    const PAYER_COMPANY = 'COMPANY';
+    
+    // Service Gate Status
+    const GATE_BLOCKED = 'BLOCKED';
+    const GATE_RELEASED = 'RELEASED';
+    const GATE_BYPASSED = 'BYPASSED';
+    const GATE_EXPIRED = 'EXPIRED';
+    
+    // Payment Methods
+    const PAY_CASH = 'CASH';
+    const PAY_MOMO = 'MOMO';
+    const PAY_CARD = 'CARD';
+    const PAY_BANK = 'BANK';
+    const PAY_CHEQUE = 'CHEQUE';
+    
+    // Invoice Status
+    const INV_DRAFT = 'DRAFT';
+    const INV_FINALIZED = 'FINALIZED';
+    const INV_VOID = 'VOID';
+    
+    // Encounter Types
+    const ENC_OPD = 'OPD';
+    const ENC_IPD = 'IPD';
+    const ENC_EMERGENCY = 'EMERGENCY';
+    
+    /* ================================================================== */
+    /*  CONSTRUCTOR                                                        */
+    /* ================================================================== */
+    
+    public function __construct()
+    {
+        parent::__construct();
+        $this->ensure_schema();
+    }
+    
+    /* ================================================================== */
+    /*  SCHEMA INSTALLATION (Idempotent)                                   */
+    /* ================================================================== */
+    
+    /**
+     * Ensure all required tables exist
+     */
+    public function ensure_schema()
+    {
+        $this->_create_billing_transactions_table();
+        $this->_create_billing_invoices_table();
+        $this->_create_billing_payments_table();
+        $this->_create_service_gates_table();
+        $this->_create_financial_ledger_table();
+        $this->_create_billing_adjustments_table();
+        $this->_create_billing_refunds_table();
+        $this->_create_nhis_claims_table();
+        $this->_create_price_versions_table();
+        $this->_create_billing_events_log_table();
+    }
+    
+    /**
+     * Core billing transactions table - Single Source of Truth
+     */
+    private function _create_billing_transactions_table()
+    {
+        if ($this->db->table_exists('eb_transactions')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_transactions` (
+                `txn_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `txn_uuid` CHAR(36) NOT NULL,
+                
+                -- Visit Context
+                `visit_id` VARCHAR(30) NOT NULL COMMENT 'IO_ID / iop_id',
+                `patient_no` VARCHAR(25) NOT NULL,
+                `encounter_type` ENUM('OPD', 'IPD', 'EMERGENCY') NOT NULL DEFAULT 'OPD',
+                `encounter_locked` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Locked after discharge',
+                
+                -- Charge Details
+                `charge_type` VARCHAR(30) NOT NULL,
+                `charge_code` VARCHAR(50) NOT NULL COMMENT 'Service code reference',
+                `charge_name` VARCHAR(255) NOT NULL,
+                `department` VARCHAR(50) DEFAULT NULL,
+                
+                -- Quantity & Pricing
+                `quantity` DECIMAL(10,2) NOT NULL DEFAULT 1,
+                `unit_price` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `price_version_id` INT UNSIGNED DEFAULT NULL COMMENT 'Price version for audit',
+                `gross_amount` DECIMAL(18,2) NOT NULL DEFAULT 0 COMMENT 'quantity * unit_price',
+                `discount_percent` DECIMAL(5,2) DEFAULT 0,
+                `discount_amount` DECIMAL(18,2) DEFAULT 0,
+                `tax_rate` DECIMAL(5,2) DEFAULT 0,
+                `tax_amount` DECIMAL(18,2) DEFAULT 0,
+                `net_amount` DECIMAL(18,2) NOT NULL DEFAULT 0 COMMENT 'Final billable amount',
+                
+                -- Payer Split
+                `payer_type` ENUM('CASH', 'NHIS', 'INSURANCE', 'COMPANY') NOT NULL DEFAULT 'CASH',
+                `coverage_percent` DECIMAL(5,2) DEFAULT 0,
+                `covered_amount` DECIMAL(18,2) DEFAULT 0 COMMENT 'Amount covered by payer',
+                `patient_amount` DECIMAL(18,2) NOT NULL DEFAULT 0 COMMENT 'Amount patient pays',
+                
+                -- NHIS Fields
+                `nhis_code` VARCHAR(20) DEFAULT NULL COMMENT 'NHIS Tariff Code',
+                `nhis_category` VARCHAR(50) DEFAULT NULL,
+                `nhis_claim_id` BIGINT UNSIGNED DEFAULT NULL,
+                `nhis_claim_status` ENUM('PENDING', 'SUBMITTED', 'APPROVED', 'REJECTED', 'PAID') DEFAULT NULL,
+                `nhis_approval_code` VARCHAR(50) DEFAULT NULL,
+                
+                -- Insurance Fields
+                `insurance_id` INT UNSIGNED DEFAULT NULL,
+                `insurance_policy_no` VARCHAR(50) DEFAULT NULL,
+                `insurance_approval_no` VARCHAR(50) DEFAULT NULL,
+                `insurance_claim_status` ENUM('PENDING', 'SUBMITTED', 'APPROVED', 'REJECTED', 'PAID') DEFAULT NULL,
+                
+                -- Company Fields
+                `company_id` INT UNSIGNED DEFAULT NULL,
+                `company_contract_id` INT UNSIGNED DEFAULT NULL,
+                `company_po_number` VARCHAR(50) DEFAULT NULL,
+                
+                -- Source Tracking (Immutable)
+                `source_module` VARCHAR(50) NOT NULL COMMENT 'OPD, LAB, PHARMACY, etc.',
+                `source_ref_id` VARCHAR(50) NOT NULL COMMENT 'FK to source record',
+                `source_ref_table` VARCHAR(50) NOT NULL COMMENT 'Source table name',
+                
+                -- Event Tracking
+                `triggered_by_event` VARCHAR(50) NOT NULL,
+                `triggered_by_user` VARCHAR(25) NOT NULL,
+                `triggered_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                
+                -- Billing Status
+                `billing_status` VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                `invoice_id` BIGINT UNSIGNED DEFAULT NULL,
+                `invoice_no` VARCHAR(30) DEFAULT NULL,
+                
+                -- Payment Tracking
+                `amount_paid` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `amount_outstanding` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                
+                -- Service Gate
+                `service_gate_id` BIGINT UNSIGNED DEFAULT NULL,
+                `service_gate_status` ENUM('BLOCKED', 'RELEASED', 'BYPASSED', 'EXPIRED') DEFAULT 'BLOCKED',
+                `service_released_at` DATETIME DEFAULT NULL,
+                `service_released_by` VARCHAR(25) DEFAULT NULL,
+                
+                -- Service Status
+                `service_status` ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
+                `service_completed_at` DATETIME DEFAULT NULL,
+                `service_completed_by` VARCHAR(25) DEFAULT NULL,
+                
+                -- Waiver & Deferral
+                `is_waived` TINYINT(1) NOT NULL DEFAULT 0,
+                `waived_by` VARCHAR(25) DEFAULT NULL,
+                `waived_at` DATETIME DEFAULT NULL,
+                `waiver_reason` VARCHAR(255) DEFAULT NULL,
+                `waiver_approval_id` INT UNSIGNED DEFAULT NULL,
+                
+                `is_deferred` TINYINT(1) NOT NULL DEFAULT 0,
+                `deferred_by` VARCHAR(25) DEFAULT NULL,
+                `deferred_at` DATETIME DEFAULT NULL,
+                `deferred_until` DATE DEFAULT NULL,
+                `deferral_reason` VARCHAR(255) DEFAULT NULL,
+                
+                -- Immutability Control
+                `is_locked` TINYINT(1) NOT NULL DEFAULT 0,
+                `locked_at` DATETIME DEFAULT NULL,
+                `locked_reason` VARCHAR(100) DEFAULT NULL,
+                
+                -- Audit Trail
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `created_by` VARCHAR(25) NOT NULL,
+                `updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                `updated_by` VARCHAR(25) DEFAULT NULL,
+                
+                -- Soft Delete
+                `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                `cancelled_at` DATETIME DEFAULT NULL,
+                `cancelled_by` VARCHAR(25) DEFAULT NULL,
+                `cancel_reason` VARCHAR(255) DEFAULT NULL,
+                
+                PRIMARY KEY (`txn_id`),
+                UNIQUE KEY `uq_ebt_uuid` (`txn_uuid`),
+                UNIQUE KEY `uq_ebt_source` (`source_module`, `source_ref_id`, `source_ref_table`),
+                
+                INDEX `idx_ebt_visit` (`visit_id`),
+                INDEX `idx_ebt_patient` (`patient_no`),
+                INDEX `idx_ebt_status` (`billing_status`),
+                INDEX `idx_ebt_invoice` (`invoice_id`),
+                INDEX `idx_ebt_type` (`charge_type`),
+                INDEX `idx_ebt_date` (`created_at`),
+                INDEX `idx_ebt_payer` (`payer_type`),
+                INDEX `idx_ebt_gate` (`service_gate_status`),
+                INDEX `idx_ebt_nhis` (`nhis_claim_id`),
+                INDEX `idx_ebt_insurance` (`insurance_id`),
+                INDEX `idx_ebt_company` (`company_id`),
+                INDEX `idx_ebt_encounter` (`encounter_type`, `created_at`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * Invoice header table
+     */
+    private function _create_billing_invoices_table()
+    {
+        if ($this->db->table_exists('eb_invoices')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_invoices` (
+                `invoice_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `invoice_no` VARCHAR(30) NOT NULL,
+                `invoice_uuid` CHAR(36) NOT NULL,
+                
+                -- Context
+                `visit_id` VARCHAR(30) NOT NULL,
+                `patient_no` VARCHAR(25) NOT NULL,
+                `encounter_type` ENUM('OPD', 'IPD', 'EMERGENCY') NOT NULL,
+                
+                -- Totals
+                `subtotal` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `total_discount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `total_tax` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `grand_total` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                
+                -- Payer Split
+                `nhis_amount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `insurance_amount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `company_amount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `patient_amount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                
+                -- Payment Status
+                `amount_paid` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `amount_outstanding` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `payment_status` ENUM('UNPAID', 'PARTIAL', 'PAID', 'OVERPAID', 'WAIVED') NOT NULL DEFAULT 'UNPAID',
+                
+                -- Invoice Status
+                `invoice_status` ENUM('DRAFT', 'FINALIZED', 'VOID', 'CANCELLED') NOT NULL DEFAULT 'DRAFT',
+                `finalized_at` DATETIME DEFAULT NULL,
+                `finalized_by` VARCHAR(25) DEFAULT NULL,
+                
+                -- Immutability
+                `is_locked` TINYINT(1) NOT NULL DEFAULT 0,
+                `locked_at` DATETIME DEFAULT NULL,
+                
+                -- Audit
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `created_by` VARCHAR(25) NOT NULL,
+                `updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                `voided_at` DATETIME DEFAULT NULL,
+                `voided_by` VARCHAR(25) DEFAULT NULL,
+                `void_reason` VARCHAR(255) DEFAULT NULL,
+                
+                PRIMARY KEY (`invoice_id`),
+                UNIQUE KEY `uq_ebi_no` (`invoice_no`),
+                UNIQUE KEY `uq_ebi_uuid` (`invoice_uuid`),
+                
+                INDEX `idx_ebi_visit` (`visit_id`),
+                INDEX `idx_ebi_patient` (`patient_no`),
+                INDEX `idx_ebi_status` (`payment_status`),
+                INDEX `idx_ebi_date` (`created_at`),
+                INDEX `idx_ebi_inv_status` (`invoice_status`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * Payment records table
+     */
+    private function _create_billing_payments_table()
+    {
+        if ($this->db->table_exists('eb_payments')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_payments` (
+                `payment_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `receipt_no` VARCHAR(30) NOT NULL,
+                `payment_uuid` CHAR(36) NOT NULL,
+                
+                -- Reference
+                `invoice_id` BIGINT UNSIGNED NOT NULL,
+                `invoice_no` VARCHAR(30) NOT NULL,
+                `visit_id` VARCHAR(30) NOT NULL,
+                `patient_no` VARCHAR(25) NOT NULL,
+                
+                -- Payment Details
+                `payment_method` ENUM('CASH', 'MOMO', 'CARD', 'BANK', 'CHEQUE') NOT NULL,
+                `payment_amount` DECIMAL(18,2) NOT NULL,
+                `payment_reference` VARCHAR(100) DEFAULT NULL COMMENT 'Transaction ID for electronic',
+                
+                -- For split payments
+                `payer_type` ENUM('PATIENT', 'NHIS', 'INSURANCE', 'COMPANY') NOT NULL DEFAULT 'PATIENT',
+                `payer_reference` VARCHAR(50) DEFAULT NULL,
+                
+                -- Status
+                `payment_status` ENUM('PENDING', 'CONFIRMED', 'FAILED', 'REVERSED', 'REFUNDED') NOT NULL DEFAULT 'CONFIRMED',
+                
+                -- Cashier Info
+                `cashier_id` VARCHAR(25) NOT NULL,
+                `shift_id` INT UNSIGNED DEFAULT NULL,
+                `terminal_id` VARCHAR(20) DEFAULT NULL,
+                
+                -- Ledger Reference
+                `ledger_entry_id` BIGINT UNSIGNED DEFAULT NULL,
+                
+                -- Immutability
+                `is_locked` TINYINT(1) NOT NULL DEFAULT 1,
+                
+                -- Audit
+                `payment_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `reversed_at` DATETIME DEFAULT NULL,
+                `reversed_by` VARCHAR(25) DEFAULT NULL,
+                `reversal_reason` VARCHAR(255) DEFAULT NULL,
+                
+                PRIMARY KEY (`payment_id`),
+                UNIQUE KEY `uq_ebp_receipt` (`receipt_no`),
+                UNIQUE KEY `uq_ebp_uuid` (`payment_uuid`),
+                
+                INDEX `idx_ebp_invoice` (`invoice_id`),
+                INDEX `idx_ebp_patient` (`patient_no`),
+                INDEX `idx_ebp_date` (`payment_date`),
+                INDEX `idx_ebp_cashier` (`cashier_id`, `payment_date`),
+                INDEX `idx_ebp_method` (`payment_method`),
+                INDEX `idx_ebp_status` (`payment_status`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * Service gates table - Payment verification before service
+     */
+    private function _create_service_gates_table()
+    {
+        if ($this->db->table_exists('eb_service_gates')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_service_gates` (
+                `gate_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `gate_uuid` CHAR(36) NOT NULL,
+                
+                -- Reference
+                `txn_id` BIGINT UNSIGNED NOT NULL,
+                `visit_id` VARCHAR(30) NOT NULL,
+                `patient_no` VARCHAR(25) NOT NULL,
+                
+                -- Service Details
+                `service_type` VARCHAR(30) NOT NULL,
+                `service_ref_id` VARCHAR(50) NOT NULL,
+                `service_ref_table` VARCHAR(50) NOT NULL,
+                `service_name` VARCHAR(255) NOT NULL,
+                `department` VARCHAR(50) DEFAULT NULL,
+                
+                -- Amount Required
+                `amount_required` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `amount_paid` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                
+                -- Gate Status
+                `gate_status` ENUM('BLOCKED', 'RELEASED', 'BYPASSED', 'EXPIRED') NOT NULL DEFAULT 'BLOCKED',
+                
+                -- Release Info
+                `released_at` DATETIME DEFAULT NULL,
+                `released_by` VARCHAR(25) DEFAULT NULL,
+                `release_type` ENUM('PAYMENT', 'WAIVER', 'DEFERRAL', 'ADMIN_OVERRIDE', 'INSURANCE_APPROVAL', 'COMPANY_CREDIT') DEFAULT NULL,
+                `release_reference` VARCHAR(50) DEFAULT NULL,
+                
+                -- Bypass (Emergency)
+                `bypassed_at` DATETIME DEFAULT NULL,
+                `bypassed_by` VARCHAR(25) DEFAULT NULL,
+                `bypass_reason` VARCHAR(255) DEFAULT NULL,
+                `bypass_approval_id` INT UNSIGNED DEFAULT NULL,
+                
+                -- Expiry
+                `expires_at` DATETIME DEFAULT NULL,
+                
+                -- Audit
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                
+                PRIMARY KEY (`gate_id`),
+                UNIQUE KEY `uq_ebsg_uuid` (`gate_uuid`),
+                
+                INDEX `idx_ebsg_txn` (`txn_id`),
+                INDEX `idx_ebsg_visit` (`visit_id`),
+                INDEX `idx_ebsg_patient` (`patient_no`),
+                INDEX `idx_ebsg_status` (`gate_status`),
+                INDEX `idx_ebsg_service` (`service_type`, `service_ref_id`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * Financial ledger - Double-entry accounting
+     */
+    private function _create_financial_ledger_table()
+    {
+        if ($this->db->table_exists('eb_ledger')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_ledger` (
+                `ledger_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `ledger_uuid` CHAR(36) NOT NULL,
+                
+                -- Transaction Reference
+                `transaction_type` VARCHAR(30) NOT NULL COMMENT 'INVOICE, PAYMENT, REFUND, ADJUSTMENT',
+                `transaction_ref_id` BIGINT UNSIGNED NOT NULL,
+                `transaction_ref_no` VARCHAR(30) NOT NULL,
+                
+                -- Context
+                `visit_id` VARCHAR(30) DEFAULT NULL,
+                `patient_no` VARCHAR(25) DEFAULT NULL,
+                
+                -- Account
+                `account_code` VARCHAR(20) NOT NULL,
+                `account_name` VARCHAR(100) NOT NULL,
+                `account_type` ENUM('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE') NOT NULL,
+                
+                -- Entry
+                `debit_amount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `credit_amount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `description` VARCHAR(255) NOT NULL,
+                
+                -- Period
+                `fiscal_year` YEAR NOT NULL,
+                `fiscal_month` TINYINT NOT NULL,
+                `posting_date` DATE NOT NULL,
+                
+                -- Status
+                `is_posted` TINYINT(1) NOT NULL DEFAULT 1,
+                `is_reversed` TINYINT(1) NOT NULL DEFAULT 0,
+                `reversal_of` BIGINT UNSIGNED DEFAULT NULL,
+                
+                -- Audit (Immutable)
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `created_by` VARCHAR(25) NOT NULL,
+                
+                PRIMARY KEY (`ledger_id`),
+                UNIQUE KEY `uq_ebl_uuid` (`ledger_uuid`),
+                
+                INDEX `idx_ebl_txn` (`transaction_type`, `transaction_ref_id`),
+                INDEX `idx_ebl_account` (`account_code`),
+                INDEX `idx_ebl_date` (`posting_date`),
+                INDEX `idx_ebl_period` (`fiscal_year`, `fiscal_month`),
+                INDEX `idx_ebl_patient` (`patient_no`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        
+        // Create chart of accounts if not exists
+        $this->_create_chart_of_accounts();
+    }
+    
+    /**
+     * Chart of accounts
+     */
+    private function _create_chart_of_accounts()
+    {
+        if ($this->db->table_exists('eb_chart_of_accounts')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_chart_of_accounts` (
+                `account_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `account_code` VARCHAR(20) NOT NULL,
+                `account_name` VARCHAR(100) NOT NULL,
+                `account_type` ENUM('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE') NOT NULL,
+                `parent_code` VARCHAR(20) DEFAULT NULL,
+                `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                
+                PRIMARY KEY (`account_id`),
+                UNIQUE KEY `uq_ebcoa_code` (`account_code`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        
+        // Seed default accounts
+        $accounts = [
+            // Assets
+            ['1000', 'Cash', 'ASSET', null],
+            ['1010', 'Bank', 'ASSET', null],
+            ['1020', 'Mobile Money', 'ASSET', null],
+            ['1100', 'Accounts Receivable - Patients', 'ASSET', null],
+            ['1110', 'Accounts Receivable - NHIS', 'ASSET', null],
+            ['1120', 'Accounts Receivable - Insurance', 'ASSET', null],
+            ['1130', 'Accounts Receivable - Corporate', 'ASSET', null],
+            
+            // Revenue
+            ['4000', 'Revenue - Consultation', 'REVENUE', null],
+            ['4010', 'Revenue - Registration', 'REVENUE', null],
+            ['4100', 'Revenue - Laboratory', 'REVENUE', null],
+            ['4200', 'Revenue - Pharmacy', 'REVENUE', null],
+            ['4300', 'Revenue - Radiology', 'REVENUE', null],
+            ['4400', 'Revenue - Procedures', 'REVENUE', null],
+            ['4500', 'Revenue - Admission', 'REVENUE', null],
+            ['4600', 'Revenue - Room Charges', 'REVENUE', null],
+            ['4700', 'Revenue - Surgery', 'REVENUE', null],
+            ['4800', 'Revenue - Other', 'REVENUE', null],
+            
+            // Expense
+            ['5000', 'Discounts Given', 'EXPENSE', null],
+            ['5100', 'Refunds', 'EXPENSE', null],
+            ['5200', 'Write-offs', 'EXPENSE', null],
+        ];
+        
+        foreach ($accounts as $acc) {
+            $this->db->query("
+                INSERT IGNORE INTO eb_chart_of_accounts (account_code, account_name, account_type, parent_code)
+                VALUES (?, ?, ?, ?)
+            ", $acc);
+        }
+    }
+    
+    /**
+     * Billing adjustments table
+     */
+    private function _create_billing_adjustments_table()
+    {
+        if ($this->db->table_exists('eb_adjustments')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_adjustments` (
+                `adj_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `adj_uuid` CHAR(36) NOT NULL,
+                `adj_no` VARCHAR(30) NOT NULL,
+                
+                -- Reference
+                `original_txn_id` BIGINT UNSIGNED DEFAULT NULL,
+                `invoice_id` BIGINT UNSIGNED NOT NULL,
+                `invoice_no` VARCHAR(30) NOT NULL,
+                `visit_id` VARCHAR(30) NOT NULL,
+                `patient_no` VARCHAR(25) NOT NULL,
+                
+                -- Adjustment Details
+                `adj_type` ENUM('DISCOUNT', 'PRICE_CORRECTION', 'QUANTITY_CORRECTION', 'WRITE_OFF', 'REVERSAL') NOT NULL,
+                `adj_amount` DECIMAL(18,2) NOT NULL,
+                `adj_reason` VARCHAR(255) NOT NULL,
+                
+                -- Approval Workflow
+                `adj_status` ENUM('PENDING', 'APPROVED', 'REJECTED', 'APPLIED') NOT NULL DEFAULT 'PENDING',
+                `requested_by` VARCHAR(25) NOT NULL,
+                `requested_at` DATETIME NOT NULL,
+                `approved_by` VARCHAR(25) DEFAULT NULL,
+                `approved_at` DATETIME DEFAULT NULL,
+                `rejection_reason` VARCHAR(255) DEFAULT NULL,
+                `applied_at` DATETIME DEFAULT NULL,
+                
+                -- Ledger Reference
+                `ledger_entry_id` BIGINT UNSIGNED DEFAULT NULL,
+                
+                -- Audit
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                
+                PRIMARY KEY (`adj_id`),
+                UNIQUE KEY `uq_eba_uuid` (`adj_uuid`),
+                UNIQUE KEY `uq_eba_no` (`adj_no`),
+                
+                INDEX `idx_eba_invoice` (`invoice_id`),
+                INDEX `idx_eba_patient` (`patient_no`),
+                INDEX `idx_eba_status` (`adj_status`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * Refunds table
+     */
+    private function _create_billing_refunds_table()
+    {
+        if ($this->db->table_exists('eb_refunds')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_refunds` (
+                `refund_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `refund_no` VARCHAR(30) NOT NULL,
+                `refund_uuid` CHAR(36) NOT NULL,
+                
+                -- Reference
+                `original_payment_id` BIGINT UNSIGNED NOT NULL,
+                `original_receipt_no` VARCHAR(30) NOT NULL,
+                `invoice_id` BIGINT UNSIGNED NOT NULL,
+                `invoice_no` VARCHAR(30) NOT NULL,
+                `visit_id` VARCHAR(30) NOT NULL,
+                `patient_no` VARCHAR(25) NOT NULL,
+                
+                -- Refund Details
+                `refund_amount` DECIMAL(18,2) NOT NULL,
+                `refund_reason` VARCHAR(255) NOT NULL,
+                `refund_method` ENUM('CASH', 'MOMO', 'BANK', 'ORIGINAL_METHOD') NOT NULL,
+                `refund_reference` VARCHAR(100) DEFAULT NULL,
+                
+                -- Approval Workflow
+                `requested_by` VARCHAR(25) NOT NULL,
+                `requested_at` DATETIME NOT NULL,
+                `approval_status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+                `approved_by` VARCHAR(25) DEFAULT NULL,
+                `approved_at` DATETIME DEFAULT NULL,
+                `rejection_reason` VARCHAR(255) DEFAULT NULL,
+                
+                -- Execution
+                `processed_by` VARCHAR(25) DEFAULT NULL,
+                `processed_at` DATETIME DEFAULT NULL,
+                `refund_status` ENUM('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED') NOT NULL DEFAULT 'PENDING',
+                
+                -- Ledger Reference
+                `ledger_entry_id` BIGINT UNSIGNED DEFAULT NULL,
+                
+                -- Audit
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                
+                PRIMARY KEY (`refund_id`),
+                UNIQUE KEY `uq_ebr_no` (`refund_no`),
+                UNIQUE KEY `uq_ebr_uuid` (`refund_uuid`),
+                
+                INDEX `idx_ebr_payment` (`original_payment_id`),
+                INDEX `idx_ebr_invoice` (`invoice_id`),
+                INDEX `idx_ebr_patient` (`patient_no`),
+                INDEX `idx_ebr_status` (`approval_status`, `refund_status`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * NHIS Claims table
+     */
+    private function _create_nhis_claims_table()
+    {
+        if ($this->db->table_exists('eb_nhis_claims')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_nhis_claims` (
+                `claim_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `claim_no` VARCHAR(50) NOT NULL,
+                `claim_uuid` CHAR(36) NOT NULL,
+                
+                -- Batch Info
+                `batch_id` INT UNSIGNED DEFAULT NULL,
+                `batch_month` VARCHAR(7) NOT NULL COMMENT 'YYYY-MM',
+                
+                -- Patient/Visit
+                `visit_id` VARCHAR(30) NOT NULL,
+                `patient_no` VARCHAR(25) NOT NULL,
+                `nhis_member_id` VARCHAR(50) NOT NULL,
+                
+                -- Claim Details
+                `claim_amount` DECIMAL(18,2) NOT NULL,
+                `approved_amount` DECIMAL(18,2) DEFAULT NULL,
+                `copayment_amount` DECIMAL(18,2) DEFAULT 0,
+                
+                -- Status
+                `claim_status` ENUM('DRAFT', 'SUBMITTED', 'ACKNOWLEDGED', 'APPROVED', 
+                                    'PARTIAL', 'REJECTED', 'PAID', 'DISPUTED') NOT NULL DEFAULT 'DRAFT',
+                
+                -- Claim-IT Integration
+                `claimit_reference` VARCHAR(100) DEFAULT NULL,
+                `claimit_submitted_at` DATETIME DEFAULT NULL,
+                `claimit_response` JSON DEFAULT NULL,
+                
+                -- Rejection Handling
+                `rejection_code` VARCHAR(20) DEFAULT NULL,
+                `rejection_reason` VARCHAR(255) DEFAULT NULL,
+                `resubmission_of` BIGINT UNSIGNED DEFAULT NULL,
+                
+                -- Audit
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `created_by` VARCHAR(25) NOT NULL,
+                `submitted_at` DATETIME DEFAULT NULL,
+                `submitted_by` VARCHAR(25) DEFAULT NULL,
+                
+                PRIMARY KEY (`claim_id`),
+                UNIQUE KEY `uq_ebnc_no` (`claim_no`),
+                UNIQUE KEY `uq_ebnc_uuid` (`claim_uuid`),
+                
+                INDEX `idx_ebnc_batch` (`batch_id`),
+                INDEX `idx_ebnc_month` (`batch_month`),
+                INDEX `idx_ebnc_patient` (`patient_no`),
+                INDEX `idx_ebnc_status` (`claim_status`),
+                INDEX `idx_ebnc_nhis` (`nhis_member_id`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * Price versions table - Historical pricing
+     */
+    private function _create_price_versions_table()
+    {
+        if ($this->db->table_exists('eb_price_versions')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_price_versions` (
+                `version_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `service_type` VARCHAR(30) NOT NULL,
+                `service_code` VARCHAR(50) NOT NULL,
+                `service_name` VARCHAR(255) NOT NULL,
+                
+                -- Pricing
+                `cash_price` DECIMAL(18,2) NOT NULL DEFAULT 0,
+                `nhis_price` DECIMAL(18,2) DEFAULT NULL,
+                `insurance_price` DECIMAL(18,2) DEFAULT NULL,
+                
+                -- Validity
+                `effective_from` DATE NOT NULL,
+                `effective_to` DATE DEFAULT NULL,
+                `is_current` TINYINT(1) NOT NULL DEFAULT 1,
+                
+                -- Audit
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `created_by` VARCHAR(25) NOT NULL,
+                
+                PRIMARY KEY (`version_id`),
+                
+                INDEX `idx_ebpv_service` (`service_type`, `service_code`),
+                INDEX `idx_ebpv_current` (`is_current`),
+                INDEX `idx_ebpv_effective` (`effective_from`, `effective_to`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /**
+     * Billing events log - Immutable audit trail
+     */
+    private function _create_billing_events_log_table()
+    {
+        if ($this->db->table_exists('eb_events_log')) return;
+        
+        $this->db->query("
+            CREATE TABLE `eb_events_log` (
+                `event_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `event_uuid` CHAR(36) NOT NULL,
+                
+                -- Event Details
+                `event_type` VARCHAR(50) NOT NULL,
+                `event_source` VARCHAR(50) NOT NULL,
+                `event_action` VARCHAR(50) NOT NULL,
+                `event_data` JSON NOT NULL,
+                
+                -- Context
+                `visit_id` VARCHAR(30) DEFAULT NULL,
+                `patient_no` VARCHAR(25) DEFAULT NULL,
+                `txn_id` BIGINT UNSIGNED DEFAULT NULL,
+                `invoice_id` BIGINT UNSIGNED DEFAULT NULL,
+                `payment_id` BIGINT UNSIGNED DEFAULT NULL,
+                
+                -- Result
+                `event_result` ENUM('SUCCESS', 'FAILED', 'SKIPPED') NOT NULL DEFAULT 'SUCCESS',
+                `error_message` TEXT DEFAULT NULL,
+                `processing_time_ms` INT UNSIGNED DEFAULT NULL,
+                
+                -- Audit (Immutable)
+                `triggered_by` VARCHAR(25) NOT NULL,
+                `triggered_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `ip_address` VARCHAR(45) DEFAULT NULL,
+                `user_agent` VARCHAR(255) DEFAULT NULL,
+                
+                PRIMARY KEY (`event_id`),
+                UNIQUE KEY `uq_ebel_uuid` (`event_uuid`),
+                
+                INDEX `idx_ebel_type` (`event_type`),
+                INDEX `idx_ebel_visit` (`visit_id`),
+                INDEX `idx_ebel_patient` (`patient_no`),
+                INDEX `idx_ebel_date` (`triggered_at`),
+                INDEX `idx_ebel_result` (`event_result`)
+                
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+    
+    /* ================================================================== */
+    /*  HELPER METHODS                                                     */
+    /* ================================================================== */
+    
+    /**
+     * Generate UUID v4
+     */
+    public function generate_uuid()
+    {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+    
+    /**
+     * Generate invoice number
+     */
+    public function generate_invoice_no()
+    {
+        $prefix = 'INV';
+        $date = date('Ymd');
+        
+        $this->db->select_max('invoice_id');
+        $result = $this->db->get('eb_invoices')->row();
+        $next_id = ($result->invoice_id ?? 0) + 1;
+        
+        return $prefix . $date . str_pad($next_id, 5, '0', STR_PAD_LEFT);
+    }
+    
+    /**
+     * Generate receipt number
+     */
+    public function generate_receipt_no()
+    {
+        $prefix = 'RCP';
+        $date = date('Ymd');
+        
+        $this->db->select_max('payment_id');
+        $result = $this->db->get('eb_payments')->row();
+        $next_id = ($result->payment_id ?? 0) + 1;
+        
+        return $prefix . $date . str_pad($next_id, 5, '0', STR_PAD_LEFT);
+    }
+    
+    /**
+     * Get current user ID
+     */
+    public function get_current_user()
+    {
+        return $this->session->userdata('user_id') ?? 'SYSTEM';
+    }
+    
+    /**
+     * Get client IP address
+     */
+    public function get_client_ip()
+    {
+        return $this->input->ip_address();
+    }
+}

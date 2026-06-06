@@ -1,0 +1,1061 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once(APPPATH.'controllers/General.php');
+
+/**
+ * Enterprise Billing Controller
+ * Unified billing interface for all HMS billing operations
+ * Access via: /app/ebilling
+ * 
+ * @author HMS Enterprise Architect
+ * @version 2.0
+ */
+class Ebilling extends General
+{
+    public function __construct()
+    {
+        parent::__construct();
+        
+        if (General::is_logged_in() == FALSE) {
+            redirect(base_url() . 'login');
+        }
+        General::variable();
+        
+        // Allow billing access - 'billing' maps to 'cashier' role key in RBAC
+        if (!has_role(array('admin', 'cashier'))) {
+            $this->session->set_flashdata('error', 'Access denied. You do not have permission to access billing.');
+            redirect('app/dashboard');
+        }
+
+        // Load models
+        $this->load->model('app/Enterprise_billing_model', 'eb_model');
+        $this->load->model('app/Billing_engine_model', 'billing_engine');
+        $this->load->model('app/Payment_engine_model', 'payment_engine');
+        $this->load->model('app/Reconciliation_engine_model', 'reconciliation');
+        $this->load->model('app/Billing_audit_model', 'audit_model');
+        $this->load->model('app/Revenue_analytics_model', 'analytics_model');
+
+        // Load BillingAuth library
+        $this->load->library('BillingAuth');
+
+        if (!$this->session->userdata('_schema_ebilling_ok')) {
+            $this->eb_model->ensure_schema();
+            $this->session->set_userdata('_schema_ebilling_ok', 1);
+        }
+    }
+    
+    /**
+     * Main billing dashboard - Redirects to Unified Billing (Single Source of Truth)
+     */
+    public function index()
+    {
+        // Redirect to Unified Billing Dashboard which queries legacy tables
+        redirect('app/unified_billing');
+    }
+    
+    /**
+     * View patient billing
+     */
+    public function patient($patient_no = null)
+    {
+        if (!$patient_no) {
+            $this->session->set_flashdata('error', 'Patient number required');
+            redirect('app/ebilling');
+        }
+        
+        $this->data['page_title'] = 'Patient Billing';
+        $this->data['patient'] = $this->get_patient($patient_no);
+        
+        if (!$this->data['patient']) {
+            $this->session->set_flashdata('error', 'Patient not found');
+            redirect('app/ebilling');
+        }
+        
+        $this->data['active_visit'] = $this->get_active_visit($patient_no);
+        $this->data['pending_transactions'] = $this->get_patient_pending_transactions($patient_no);
+        $this->data['invoices'] = $this->payment_engine->get_patient_invoices($patient_no);
+        $this->data['blocked_services'] = $this->get_patient_blocked_services($patient_no);
+        
+        $this->load->view('app/enterprise_billing/patient', $this->data);
+    }
+    
+    /**
+     * Search patient (AJAX)
+     */
+    public function search_patient()
+    {
+        $term = $this->input->get('term');
+        
+        if (strlen($term) < 2) {
+            echo json_encode([]);
+            return;
+        }
+        
+        $this->db->select('patient_no, firstname, lastname, phone, patient_type');
+        $this->db->like('patient_no', $term);
+        $this->db->or_like('firstname', $term);
+        $this->db->or_like('lastname', $term);
+        $this->db->or_like('phone', $term);
+        $this->db->limit(10);
+        $patients = $this->db->get('patient_personal_info')->result();
+        
+        $results = [];
+        foreach ($patients as $p) {
+            $results[] = [
+                'id' => $p->patient_no,
+                'text' => "{$p->patient_no} - {$p->firstname} {$p->lastname}",
+                'patient_no' => $p->patient_no,
+                'name' => "{$p->firstname} {$p->lastname}",
+                'phone' => $p->phone,
+                'type' => $p->patient_type
+            ];
+        }
+        
+        echo json_encode($results);
+    }
+    
+    /**
+     * Generate invoice for visit
+     */
+    public function generate_invoice()
+    {
+        $visit_id = $this->input->post('visit_id');
+        
+        if (!$visit_id) {
+            echo json_encode(['success' => false, 'error' => 'Visit ID required']);
+            return;
+        }
+        
+        $result = $this->payment_engine->generate_invoice($visit_id);
+        echo json_encode($result);
+    }
+    
+    /**
+     * View invoice
+     */
+    public function invoice($invoice_id)
+    {
+        $this->data['page_title'] = 'Invoice Details';
+        $this->data['invoice'] = $this->payment_engine->get_invoice($invoice_id);
+        
+        if (!$this->data['invoice']) {
+            $this->session->set_flashdata('error', 'Invoice not found');
+            redirect('app/ebilling');
+        }
+        
+        $this->data['patient'] = $this->get_patient($this->data['invoice']->patient_no);
+        
+        $this->load->view('app/enterprise_billing/invoice', $this->data);
+    }
+    
+    /**
+     * Print invoice
+     */
+    public function print_invoice($invoice_id)
+    {
+        $data['invoice'] = $this->payment_engine->get_invoice($invoice_id);
+        
+        if (!$data['invoice']) {
+            show_error('Invoice not found');
+            return;
+        }
+        
+        $data['patient'] = $this->get_patient($data['invoice']->patient_no);
+        $data['hospital'] = $this->get_hospital_info();
+        
+        $this->load->view('app/enterprise_billing/print_invoice', $data);
+    }
+    
+    /**
+     * Payment collection page
+     */
+    public function collect_payment($invoice_id = null)
+    {
+        $this->data['page_title'] = 'Collect Payment';
+        
+        if ($invoice_id) {
+            $this->data['invoice'] = $this->payment_engine->get_invoice($invoice_id);
+            if ($this->data['invoice']) {
+                $this->data['patient'] = $this->get_patient($this->data['invoice']->patient_no);
+            }
+        }
+        
+        $this->data['payment_methods'] = ['CASH', 'MOMO', 'CARD', 'BANK', 'CHEQUE'];
+        
+        $this->load->view('app/enterprise_billing/collect_payment', $this->data);
+    }
+    
+    /**
+     * Process payment
+     */
+    public function process_payment()
+    {
+        $data = [
+            'invoice_id' => $this->input->post('invoice_id'),
+            'payment_amount' => floatval($this->input->post('payment_amount')),
+            'payment_method' => $this->input->post('payment_method'),
+            'payment_reference' => $this->input->post('payment_reference')
+        ];
+        
+        $result = $this->payment_engine->process_payment($data);
+        echo json_encode($result);
+    }
+    
+    /**
+     * Print receipt
+     */
+    public function print_receipt($payment_id)
+    {
+        $this->db->where('payment_id', $payment_id);
+        $data['payment'] = $this->db->get('eb_payments')->row();
+        
+        if (!$data['payment']) {
+            show_error('Receipt not found');
+            return;
+        }
+        
+        $data['invoice'] = $this->payment_engine->get_invoice($data['payment']->invoice_id);
+        $data['patient'] = $this->get_patient($data['payment']->patient_no);
+        $data['hospital'] = $this->get_hospital_info();
+        
+        $this->load->view('app/enterprise_billing/print_receipt', $data);
+    }
+    
+    /**
+     * View blocked services
+     */
+    public function blocked_services()
+    {
+        $this->data['page_title'] = 'Blocked Services';
+        $this->data['blocked'] = array();
+        
+        // Check if required tables exist before querying
+        if ($this->db->table_exists('eb_service_gates') && $this->db->table_exists('eb_transactions')) {
+            $this->db->select('g.*, t.charge_name, t.patient_amount, p.firstname, p.lastname');
+            $this->db->from('eb_service_gates g');
+            $this->db->join('eb_transactions t', 't.txn_id = g.txn_id');
+            $this->db->join('patient_personal_info p', 'p.patient_no = g.patient_no', 'left');
+            $this->db->where('g.gate_status', 'BLOCKED');
+            $this->db->order_by('g.created_at', 'DESC');
+            $this->data['blocked'] = $this->db->get()->result();
+        }
+        
+        $this->load->view('app/enterprise_billing/blocked_services', $this->data);
+    }
+    
+    /**
+     * Bypass service gate (admin only)
+     */
+    public function bypass_gate()
+    {
+        if (!$this->is_admin()) {
+            echo json_encode(['success' => false, 'error' => 'Admin permission required']);
+            return;
+        }
+        
+        $gate_id = $this->input->post('gate_id');
+        $reason = $this->input->post('reason');
+        
+        $this->billing_engine->bypass_service_gate($gate_id, $reason, $this->session->userdata('user_id'));
+        
+        echo json_encode(['success' => true, 'message' => 'Service gate bypassed']);
+    }
+    
+    /**
+     * Refund requests list
+     */
+    public function refunds()
+    {
+        $this->data['page_title'] = 'Refund Requests';
+        
+        $this->db->select('r.*, p.firstname, p.lastname');
+        $this->db->from('eb_refunds r');
+        $this->db->join('patient_personal_info p', 'p.patient_no = r.patient_no', 'left');
+        $this->db->order_by('r.created_at', 'DESC');
+        $this->data['refunds'] = $this->db->get()->result();
+        
+        $this->load->view('app/enterprise_billing/refunds', $this->data);
+    }
+    
+    /**
+     * Daily collection report
+     */
+    public function daily_report($date = null)
+    {
+        $date = $date ?? date('Y-m-d');
+        
+        $this->data['page_title'] = 'Daily Collection Report';
+        $this->data['report_date'] = $date;
+        $this->data['collections'] = $this->payment_engine->get_daily_collection($date);
+        
+        $this->data['total_cash'] = 0;
+        $this->data['total_momo'] = 0;
+        $this->data['total_card'] = 0;
+        $this->data['grand_total'] = 0;
+        
+        foreach ($this->data['collections'] as $c) {
+            $this->data['grand_total'] += $c->total;
+            if ($c->payment_method === 'CASH') $this->data['total_cash'] = $c->total;
+            if ($c->payment_method === 'MOMO') $this->data['total_momo'] = $c->total;
+            if ($c->payment_method === 'CARD') $this->data['total_card'] = $c->total;
+        }
+        
+        $this->load->view('app/enterprise_billing/daily_report', $this->data);
+    }
+    
+    /**
+     * Department revenue report
+     */
+    public function department_report()
+    {
+        $this->data['page_title'] = 'Department Revenue Report';
+        
+        $date_from = $this->input->get('from') ?? date('Y-m-01');
+        $date_to = $this->input->get('to') ?? date('Y-m-d');
+        
+        $this->data['date_from'] = $date_from;
+        $this->data['date_to'] = $date_to;
+        $this->data['revenue'] = $this->payment_engine->get_department_revenue($date_from, $date_to);
+        
+        $this->load->view('app/enterprise_billing/department_report', $this->data);
+    }
+    
+    /**
+     * Outstanding balances report
+     */
+    public function outstanding_report()
+    {
+        $this->data['page_title'] = 'Outstanding Balances';
+        $this->data['outstanding'] = $this->payment_engine->get_outstanding_balances(100);
+        
+        $this->load->view('app/enterprise_billing/outstanding_report', $this->data);
+    }
+    
+    /**
+     * Reconciliation dashboard
+     */
+    public function reconciliation_dashboard()
+    {
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_reconciliation',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $this->data['page_title'] = 'Billing Reconciliation';
+        $this->data['summary'] = $this->reconciliation->get_summary();
+        $this->data['discrepancies'] = $this->reconciliation->run_reconciliation();
+        
+        $this->load->view('app/enterprise_billing/reconciliation', $this->data);
+    }
+    
+    /**
+     * Fix a single discrepancy (AJAX)
+     */
+    public function fix_discrepancy()
+    {
+        $type = $this->input->post('type');
+        $reference_id = $this->input->post('reference_id');
+        
+        if (!$type || !$reference_id) {
+            echo json_encode(['success' => false, 'error' => 'Missing parameters']);
+            return;
+        }
+        
+        $result = $this->reconciliation->auto_fix($type, $reference_id);
+        echo json_encode($result);
+    }
+    
+    /**
+     * Fix all legacy unbilled services (bulk action)
+     */
+    public function fix_all_legacy()
+    {
+        // Set JSON header
+        header('Content-Type: application/json');
+        
+        // Skip role check - any logged in user with access to billing can use this
+        // The page itself is already protected by the controller's constructor
+        if (!$this->session->userdata('is_logged_in')) {
+            echo json_encode(['success' => false, 'error' => 'Not logged in']);
+            return;
+        }
+        
+        try {
+            // Direct SQL approach - insert legacy billing records for unbilled lab tests
+            $user_id = $this->session->userdata('user_id') ?? 'SYSTEM';
+            
+            // Check if eb_transactions table exists
+            if (!$this->db->table_exists('eb_transactions')) {
+                echo json_encode(['success' => false, 'error' => 'eb_transactions table does not exist']);
+                return;
+            }
+            
+            // Get unbilled lab tests
+            $sql = "
+                SELECT l.io_lab_id, l.iop_id, l.laboratory_id, l.laboratory_text, l.dDate,
+                       pd.patient_no, pd.IO_ID as visit_id,
+                       COALESCE(bp.particular_name, l.laboratory_text) as test_name,
+                       COALESCE(bp.charge_amount, 0) as price
+                FROM iop_laboratory l
+                JOIN patient_details_iop pd ON pd.IO_ID = l.iop_id
+                LEFT JOIN bill_particular bp ON bp.particular_id = l.laboratory_id
+                WHERE l.InActive = 0 
+                AND l.dDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                AND NOT EXISTS (
+                    SELECT 1 FROM eb_transactions t 
+                    WHERE t.source_module COLLATE utf8mb4_unicode_ci = 'LABORATORY' 
+                    AND t.source_ref_id COLLATE utf8mb4_unicode_ci = CAST(l.io_lab_id AS CHAR)
+                    AND t.is_active = 1
+                )
+                LIMIT 100
+            ";
+            
+            $unbilled = $this->db->query($sql)->result();
+            $fixed = 0;
+            $errors = [];
+            
+            foreach ($unbilled as $lab) {
+                $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0x0fff) | 0x4000,
+                    mt_rand(0, 0x3fff) | 0x8000,
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                );
+                
+                $price = floatval($lab->price);
+                
+                $txn_data = [
+                    'txn_uuid' => $uuid,
+                    'visit_id' => $lab->visit_id,
+                    'patient_no' => $lab->patient_no,
+                    'encounter_type' => 'OPD',
+                    'charge_type' => 'LABORATORY',
+                    'charge_code' => 'LAB-' . $lab->laboratory_id,
+                    'charge_name' => $lab->test_name,
+                    'department' => 'LABORATORY',
+                    'source_module' => 'LABORATORY',
+                    'source_ref_id' => (string)$lab->io_lab_id,
+                    'source_ref_table' => 'iop_laboratory',
+                    'triggered_by_event' => 'LEGACY_MIGRATION',
+                    'triggered_by_user' => $user_id,
+                    'triggered_at' => date('Y-m-d H:i:s'),
+                    'quantity' => 1,
+                    'unit_price' => $price,
+                    'gross_amount' => $price,
+                    'net_amount' => $price,
+                    'discount_amount' => 0,
+                    'covered_amount' => 0,
+                    'patient_amount' => $price,
+                    'payer_type' => 'CASH',
+                    'billing_status' => 'LEGACY_BILLED',
+                    'amount_paid' => $price,
+                    'amount_outstanding' => 0,
+                    'is_active' => 1,
+                    'created_at' => $lab->dDate,
+                    'created_by' => $user_id
+                ];
+                
+                $this->db->insert('eb_transactions', $txn_data);
+                
+                if ($this->db->affected_rows() > 0) {
+                    $fixed++;
+                } else {
+                    $err = $this->db->error();
+                    $errors[] = "Lab {$lab->io_lab_id}: " . ($err['message'] ?? 'Unknown');
+                }
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'fixed' => $fixed,
+                'total_found' => count($unbilled),
+                'errors' => $errors,
+                'message' => "Fixed {$fixed} of " . count($unbilled) . " unbilled services"
+            ]);
+            
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => 'Exception: ' . $e->getMessage()]);
+        }
+    }
+    
+    /* ================================================================== */
+    /*  HELPER METHODS                                                     */
+    /* ================================================================== */
+    
+    private function get_patient($patient_no)
+    {
+        $this->db->where('patient_no', $patient_no);
+        return $this->db->get('patient_personal_info')->row();
+    }
+    
+    private function get_active_visit($patient_no)
+    {
+        $this->db->where('patient_no', $patient_no);
+        $this->db->where('InActive', 0);
+        $this->db->where('DATE(dDate)', date('Y-m-d'));
+        $this->db->order_by('dDate', 'DESC');
+        $this->db->limit(1);
+        return $this->db->get('patient_details_iop')->row();
+    }
+    
+    private function get_patient_pending_transactions($patient_no)
+    {
+        $this->db->where('patient_no', $patient_no);
+        $this->db->where('is_active', 1);
+        $this->db->where('billing_status', 'PENDING');
+        $this->db->order_by('created_at', 'DESC');
+        return $this->db->get('eb_transactions')->result();
+    }
+    
+    private function get_patient_blocked_services($patient_no)
+    {
+        if (!$this->db->table_exists('eb_service_gates') || !$this->db->table_exists('eb_transactions')) {
+            return array();
+        }
+        $this->db->select('g.*, t.charge_name, t.patient_amount');
+        $this->db->from('eb_service_gates g');
+        $this->db->join('eb_transactions t', 't.txn_id = g.txn_id');
+        $this->db->where('g.patient_no', $patient_no);
+        $this->db->where('g.gate_status', 'BLOCKED');
+        return $this->db->get()->result();
+    }
+    
+    private function get_today_invoices_count()
+    {
+        if (!$this->db->table_exists('eb_invoices')) return 0;
+        $this->db->where('DATE(created_at)', date('Y-m-d'));
+        return $this->db->count_all_results('eb_invoices');
+    }
+    
+    private function get_today_collections()
+    {
+        if (!$this->db->table_exists('eb_payments')) return 0;
+        $this->db->select_sum('payment_amount', 'total');
+        $this->db->where('DATE(payment_date)', date('Y-m-d'));
+        $this->db->where('payment_status', 'CONFIRMED');
+        $result = $this->db->get('eb_payments')->row();
+        return $result->total ?? 0;
+    }
+    
+    private function get_pending_payments_count()
+    {
+        if (!$this->db->table_exists('eb_invoices')) return 0;
+        $this->db->where('payment_status !=', 'PAID');
+        $this->db->where('invoice_status !=', 'VOID');
+        return $this->db->count_all_results('eb_invoices');
+    }
+    
+    private function get_blocked_services_count()
+    {
+        if (!$this->db->table_exists('eb_service_gates')) return 0;
+        $this->db->where('gate_status', 'BLOCKED');
+        return $this->db->count_all_results('eb_service_gates');
+    }
+    
+    private function get_recent_transactions($limit = 10)
+    {
+        if (!$this->db->table_exists('eb_transactions')) return [];
+        $this->db->select('t.*, p.firstname, p.lastname');
+        $this->db->from('eb_transactions t');
+        $this->db->join('patient_personal_info p', 'p.patient_no = t.patient_no', 'left');
+        $this->db->where('t.is_active', 1);
+        $this->db->order_by('t.created_at', 'DESC');
+        $this->db->limit($limit);
+        return $this->db->get()->result();
+    }
+    
+    private function get_hospital_info()
+    {
+        $this->db->limit(1);
+        return $this->db->get('hospital_info')->row();
+    }
+    
+    private function is_admin()
+    {
+        $role = $this->session->userdata('role');
+        return in_array($role, ['admin', 'superadmin', 'administrator']);
+    }
+    
+    /**
+     * Financial Ledger View (Admin only)
+     */
+    public function ledger()
+    {
+        if (!$this->is_admin()) {
+            redirect('app/ebilling');
+            return;
+        }
+        
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_ledger',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $date_from = $this->input->get('from') ?? date('Y-m-01');
+        $date_to = $this->input->get('to') ?? date('Y-m-d');
+        
+        $data['page_title'] = 'Financial Ledger';
+        $data['date_from'] = $date_from;
+        $data['date_to'] = $date_to;
+        
+        // Get ledger entries from eb_ledger table
+        if ($this->db->table_exists('eb_ledger')) {
+            $this->db->where('entry_date >=', $date_from);
+            $this->db->where('entry_date <=', $date_to);
+            $this->db->order_by('entry_date', 'DESC');
+            $this->db->order_by('ledger_id', 'DESC');
+            $this->db->limit(500);
+            $data['entries'] = $this->db->get('eb_ledger')->result();
+        } else {
+            $data['entries'] = [];
+        }
+        
+        // Get accounts for reference
+        if ($this->db->table_exists('chart_of_accounts')) {
+            $data['accounts'] = $this->db->get('chart_of_accounts')->result();
+        } else {
+            $data['accounts'] = [];
+        }
+        
+        $this->load->view('app/enterprise_billing/ledger', $data);
+    }
+    
+    /**
+     * Billing Audit Log (Admin only)
+     */
+    public function audit_log()
+    {
+        if (!$this->is_admin()) {
+            redirect('app/ebilling');
+            return;
+        }
+        
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_audit',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $filters = array(
+            'action_type' => $this->input->get('action') ?? '',
+            'invoice_no' => $this->input->get('invoice') ?? '',
+            'date_from' => $this->input->get('from') ?? date('Y-m-d', strtotime('-7 days')),
+            'date_to' => $this->input->get('to') ?? date('Y-m-d')
+        );
+        
+        $data['page_title'] = 'Billing Audit Log';
+        $data['filters'] = $filters;
+        
+        // Get audit entries
+        if ($this->db->table_exists('eb_audit_log')) {
+            if (!empty($filters['action_type'])) {
+                $this->db->where('action_type', $filters['action_type']);
+            }
+            if (!empty($filters['invoice_no'])) {
+                $this->db->like('reference_no', $filters['invoice_no']);
+            }
+            $this->db->where('created_at >=', $filters['date_from'] . ' 00:00:00');
+            $this->db->where('created_at <=', $filters['date_to'] . ' 23:59:59');
+            $this->db->order_by('created_at', 'DESC');
+            $this->db->limit(200);
+            $data['entries'] = $this->db->get('eb_audit_log')->result();
+        } else {
+            $data['entries'] = [];
+        }
+        
+        $this->load->view('app/enterprise_billing/audit_log', $data);
+    }
+    
+    /**
+     * Revenue Analytics Dashboard
+     */
+    public function analytics()
+    {
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_analytics',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $this->data['page_title'] = 'Revenue Analytics';
+        $this->data['summary'] = $this->analytics_model->get_dashboard_summary();
+        $this->data['revenue_trend'] = $this->analytics_model->get_daily_revenue_trend(30);
+        $this->data['cashier_performance'] = $this->analytics_model->get_cashier_performance(date('Y-m-01'), date('Y-m-d'));
+        
+        $this->load->view('app/enterprise_billing/analytics', $this->data);
+    }
+    
+    /**
+     * Billing Audit Logs (new version using Billing_audit_model)
+     */
+    public function audit_logs()
+    {
+        // Check permission
+        if (!$this->billingauth->check('view_audit')) {
+            $this->session->set_flashdata('error', 'You do not have permission to view audit logs.');
+            redirect('app/ebilling');
+        }
+        
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_audit_logs',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $filters = [
+            'action' => $this->input->get('action'),
+            'date_from' => $this->input->get('date_from') ?? date('Y-m-d', strtotime('-7 days')),
+            'date_to' => $this->input->get('date_to') ?? date('Y-m-d'),
+            'patient_no' => $this->input->get('patient_no'),
+            'user_id' => $this->input->get('user_id')
+        ];
+        
+        $this->data['page_title'] = 'Billing Audit Logs';
+        $this->data['filters'] = $filters;
+        $this->data['logs'] = $this->audit_model->get_logs($filters, 200);
+        $this->data['total_logs'] = $this->audit_model->count_logs($filters);
+        
+        // Get stats
+        $this->data['stats'] = [
+            'invoices_created' => $this->audit_model->count_logs(array_merge($filters, ['action' => 'INVOICE_CREATED'])),
+            'payments_collected' => $this->audit_model->count_logs(array_merge($filters, ['action' => 'PAYMENT_COLLECTED'])),
+            'refunds' => $this->audit_model->count_logs(array_merge($filters, ['action' => 'REFUND_ISSUED']))
+        ];
+        
+        $this->load->view('app/enterprise_billing/audit_logs', $this->data);
+    }
+    
+    /**
+     * Refund Management
+     */
+    public function refund_management()
+    {
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_refunds',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $this->data['page_title'] = 'Refund Management';
+        $this->data['pending_refunds'] = $this->audit_model->get_pending_refunds();
+        
+        // Get all refunds
+        $this->db->select('r.*, p.firstname, p.lastname, u1.username as requested_by_name, u2.username as approved_by_name');
+        $this->db->from('billing_refunds r');
+        $this->db->join('patient_personal_info p', 'p.patient_no = r.patient_no', 'left');
+        $this->db->join('users u1', 'u1.user_id = r.requested_by', 'left');
+        $this->db->join('users u2', 'u2.user_id = r.approved_by', 'left');
+        $this->db->order_by('r.created_at', 'DESC');
+        $this->db->limit(100);
+        $this->data['all_refunds'] = $this->db->get()->result();
+        
+        $this->load->view('app/enterprise_billing/refund_management', $this->data);
+    }
+    
+    /**
+     * Request Refund (AJAX)
+     */
+    public function request_refund()
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->billingauth->check('refund')) {
+            echo json_encode(['success' => false, 'error' => 'Permission denied']);
+            return;
+        }
+        
+        $data = [
+            'invoice_id' => $this->input->post('invoice_id'),
+            'invoice_no' => $this->input->post('invoice_no'),
+            'patient_no' => $this->input->post('patient_no'),
+            'amount' => floatval($this->input->post('amount')),
+            'reason' => $this->input->post('reason'),
+            'refund_method' => $this->input->post('refund_method') ?? 'CASH'
+        ];
+        
+        if (empty($data['invoice_id']) || empty($data['amount']) || empty($data['reason'])) {
+            echo json_encode(['success' => false, 'error' => 'Missing required fields']);
+            return;
+        }
+        
+        $refund_id = $this->audit_model->create_refund_request($data);
+        
+        echo json_encode([
+            'success' => true,
+            'refund_id' => $refund_id,
+            'message' => 'Refund request submitted for approval'
+        ]);
+    }
+    
+    /**
+     * Approve Refund (AJAX)
+     */
+    public function approve_refund()
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->billingauth->is_finance_manager()) {
+            echo json_encode(['success' => false, 'error' => 'Only Finance Manager can approve refunds']);
+            return;
+        }
+        
+        $refund_id = $this->input->post('refund_id');
+        $this->audit_model->approve_refund($refund_id);
+        
+        echo json_encode(['success' => true, 'message' => 'Refund approved']);
+    }
+    
+    /**
+     * Reject Refund (AJAX)
+     */
+    public function reject_refund()
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->billingauth->is_finance_manager()) {
+            echo json_encode(['success' => false, 'error' => 'Only Finance Manager can reject refunds']);
+            return;
+        }
+        
+        $refund_id = $this->input->post('refund_id');
+        $reason = $this->input->post('reason');
+        
+        $this->audit_model->reject_refund($refund_id, $reason);
+        
+        echo json_encode(['success' => true, 'message' => 'Refund rejected']);
+    }
+    
+    /**
+     * Cashier Reconciliation
+     */
+    public function cashier_reconciliation()
+    {
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_cashier_recon',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $this->data['page_title'] = 'Cashier Reconciliation';
+        $this->data['reconciliation_date'] = $this->input->get('date') ?? date('Y-m-d');
+        
+        // Get expected amounts from payments
+        $date = $this->data['reconciliation_date'];
+        $user_id = $this->session->userdata('user_id');
+        
+        $sql = "SELECT 
+                    payment_method,
+                    COALESCE(SUM(payment_amount), 0) as total
+                FROM eb_payments 
+                WHERE DATE(payment_date) = ?
+                AND received_by = ?
+                AND payment_status = 'COMPLETED'
+                GROUP BY payment_method";
+        
+        $expected = $this->db->query($sql, [$date, $user_id])->result();
+        
+        $this->data['expected'] = [
+            'cash' => 0,
+            'momo' => 0,
+            'card' => 0,
+            'total' => 0
+        ];
+        
+        foreach ($expected as $e) {
+            $method = strtolower($e->payment_method);
+            if (strpos($method, 'cash') !== false) {
+                $this->data['expected']['cash'] += $e->total;
+            } elseif (strpos($method, 'momo') !== false || strpos($method, 'mobile') !== false) {
+                $this->data['expected']['momo'] += $e->total;
+            } elseif (strpos($method, 'card') !== false) {
+                $this->data['expected']['card'] += $e->total;
+            }
+            $this->data['expected']['total'] += $e->total;
+        }
+        
+        // Get reconciliation history
+        $this->data['history'] = $this->audit_model->get_reconciliation_history([
+            'user_id' => $user_id,
+            'type' => 'CASHIER'
+        ], 10);
+        
+        $this->load->view('app/enterprise_billing/cashier_reconciliation', $this->data);
+    }
+    
+    /**
+     * Submit Reconciliation (AJAX)
+     */
+    public function submit_reconciliation()
+    {
+        header('Content-Type: application/json');
+        
+        $data = [
+            'date' => $this->input->post('date') ?? date('Y-m-d'),
+            'type' => $this->input->post('type') ?? 'CASHIER',
+            'user_id' => $this->session->userdata('user_id'),
+            'expected_amount' => floatval($this->input->post('expected_amount')),
+            'actual_amount' => floatval($this->input->post('actual_amount')),
+            'cash_expected' => floatval($this->input->post('cash_expected')),
+            'cash_actual' => floatval($this->input->post('cash_actual')),
+            'momo_expected' => floatval($this->input->post('momo_expected')),
+            'momo_actual' => floatval($this->input->post('momo_actual')),
+            'card_expected' => floatval($this->input->post('card_expected')),
+            'card_actual' => floatval($this->input->post('card_actual')),
+            'notes' => $this->input->post('notes')
+        ];
+        
+        $recon_id = $this->audit_model->create_reconciliation($data);
+        
+        echo json_encode([
+            'success' => true,
+            'reconciliation_id' => $recon_id,
+            'message' => 'Reconciliation submitted successfully'
+        ]);
+    }
+    
+    /**
+     * Billing Notifications
+     */
+    public function notifications()
+    {
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_notifications',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $user_id = $this->session->userdata('user_id');
+        $role = $this->billingauth->get_role();
+        
+        $this->data['page_title'] = 'Billing Notifications';
+        $this->data['notifications'] = $this->audit_model->get_notifications($user_id, $role, 50);
+        
+        $this->load->view('app/enterprise_billing/notifications', $this->data);
+    }
+    
+    /**
+     * Mark Notification Read (AJAX)
+     */
+    public function mark_notification_read()
+    {
+        header('Content-Type: application/json');
+        
+        $notification_id = $this->input->post('notification_id');
+        $this->audit_model->mark_notification_read($notification_id);
+        
+        echo json_encode(['success' => true]);
+    }
+    
+    /**
+     * Get Unread Notification Count (AJAX)
+     */
+    public function notification_count()
+    {
+        header('Content-Type: application/json');
+        
+        $user_id = $this->session->userdata('user_id');
+        $role = $this->billingauth->get_role();
+        
+        $notifications = $this->audit_model->get_notifications($user_id, $role, 100);
+        
+        echo json_encode(['count' => count($notifications)]);
+    }
+    
+    /**
+     * Billing Permissions Management (Admin only)
+     */
+    public function permissions()
+    {
+        if (!$this->billingauth->is_super_admin()) {
+            $this->session->set_flashdata('error', 'Only Super Admin can manage billing permissions.');
+            redirect('app/ebilling');
+        }
+        
+        $this->session->set_userdata(array(
+            'tab' => 'ebilling',
+            'module' => 'ebilling_permissions',
+            'subtab' => '',
+            'submodule' => ''
+        ));
+        
+        $this->data['page_title'] = 'Billing Permissions';
+        $this->data['roles'] = $this->billingauth->get_all_roles();
+        
+        // Get users with billing roles
+        $this->db->select('ubr.*, u.username, u.firstname, u.lastname');
+        $this->db->from('user_billing_roles ubr');
+        $this->db->join('users u', 'u.user_id = ubr.user_id');
+        $this->data['user_roles'] = $this->db->get()->result();
+        
+        // Get all users for assignment
+        $this->db->select('user_id, username, firstname, lastname');
+        $this->db->where('InActive', 0);
+        $this->db->order_by('firstname', 'ASC');
+        $this->data['users'] = $this->db->get('users')->result();
+        
+        $this->load->view('app/enterprise_billing/permissions', $this->data);
+    }
+    
+    /**
+     * Update Role Permissions (AJAX)
+     */
+    public function update_role_permissions()
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->billingauth->is_super_admin()) {
+            echo json_encode(['success' => false, 'error' => 'Permission denied']);
+            return;
+        }
+        
+        $role_key = $this->input->post('role_key');
+        $permissions = [
+            'can_create_invoice' => $this->input->post('can_create_invoice') ? 1 : 0,
+            'can_edit_invoice' => $this->input->post('can_edit_invoice') ? 1 : 0,
+            'can_delete_invoice' => $this->input->post('can_delete_invoice') ? 1 : 0,
+            'can_collect_payment' => $this->input->post('can_collect_payment') ? 1 : 0,
+            'can_refund' => $this->input->post('can_refund') ? 1 : 0,
+            'can_view_reports' => $this->input->post('can_view_reports') ? 1 : 0,
+            'can_reconcile' => $this->input->post('can_reconcile') ? 1 : 0,
+            'can_approve_discount' => $this->input->post('can_approve_discount') ? 1 : 0,
+            'can_view_audit' => $this->input->post('can_view_audit') ? 1 : 0,
+            'can_manage_settings' => $this->input->post('can_manage_settings') ? 1 : 0
+        ];
+        
+        $this->billingauth->update_role_permissions($role_key, $permissions);
+        
+        echo json_encode(['success' => true, 'message' => 'Permissions updated']);
+    }
+    
+    /**
+     * Assign Billing Role to User (AJAX)
+     */
+    public function assign_billing_role()
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->billingauth->is_super_admin()) {
+            echo json_encode(['success' => false, 'error' => 'Permission denied']);
+            return;
+        }
+        
+        $user_id = $this->input->post('user_id');
+        $role_key = $this->input->post('role_key');
+        
+        $this->billingauth->assign_role($user_id, $role_key);
+        
+        echo json_encode(['success' => true, 'message' => 'Role assigned']);
+    }
+}

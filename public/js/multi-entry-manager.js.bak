@@ -1,0 +1,1064 @@
+/**
+ * Multi-Entry Manager v1.0
+ * Modern multi-item entry system for HMS clinical modules
+ * Supports: Diagnosis, Medication, Complaints, Laboratory, Sonography
+ */
+var MultiEntryManager = (function() {
+    'use strict';
+
+    // Instance-specific data stored on 'this' in init()
+    function init(base, options) {
+        this.baseUrl = base;
+        this.config = $.extend({
+            module: 'diagnosis',
+            containerId: 'multi-entry-container',
+            countId: 'entry-count',
+            saveButtonId: 'btn-save-all',
+            maxEntries: 20,
+            onEntryAdded: null,
+            onEntryRemoved: null,
+            onSaveSuccess: null,
+            onSaveError: null
+        }, options);
+        this.entries = [];
+        this.rowCounter = 0;
+        injectStyles();
+    }
+
+    function injectStyles() {
+        if ($('#multi-entry-styles').length) return;
+        var css = `
+            <style id="multi-entry-styles">
+                .multi-entry-modal .modal-dialog { max-width: 900px; width: 95%; }
+                .multi-entry-modal .modal-body { max-height: 70vh; overflow-y: auto; padding: 15px; }
+                .multi-entry-row { 
+                    background: #f9f9f9; 
+                    border: 1px solid #e0e0e0; 
+                    border-radius: 6px; 
+                    padding: 12px 15px; 
+                    margin-bottom: 10px;
+                    position: relative;
+                    transition: all 0.2s ease;
+                }
+                .multi-entry-row:hover { 
+                    background: #f5f5f5; 
+                    border-color: #3c8dbc;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                }
+                .multi-entry-row .row-number {
+                    position: absolute;
+                    left: -8px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 24px;
+                    height: 24px;
+                    background: #3c8dbc;
+                    color: #fff;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+                .multi-entry-row .btn-remove-row {
+                    position: absolute;
+                    right: 8px;
+                    top: 8px;
+                    padding: 2px 8px;
+                    font-size: 14px;
+                    opacity: 0.6;
+                }
+                .multi-entry-row .btn-remove-row:hover { opacity: 1; }
+                .multi-entry-row .form-group { margin-bottom: 8px; }
+                .multi-entry-row label { font-size: 11px; color: #666; margin-bottom: 2px; }
+                .multi-entry-row .form-control { font-size: 13px; }
+                .multi-entry-row .form-control-sm { height: 30px; padding: 4px 8px; }
+                .multi-entry-row textarea.form-control { min-height: 50px; }
+                .multi-entry-summary {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: #fff;
+                    border-radius: 6px;
+                    padding: 12px 20px;
+                    margin-bottom: 15px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .multi-entry-summary .count { font-size: 24px; font-weight: bold; }
+                .multi-entry-summary .label-text { font-size: 12px; opacity: 0.9; }
+                .btn-add-entry {
+                    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                    border: none;
+                    color: #fff;
+                    padding: 10px 20px;
+                    border-radius: 25px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+                .btn-add-entry:hover { 
+                    transform: translateY(-2px); 
+                    box-shadow: 0 4px 12px rgba(17,153,142,0.4);
+                    color: #fff;
+                }
+                .btn-save-all {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border: none;
+                    padding: 12px 30px;
+                    font-size: 15px;
+                    border-radius: 25px;
+                }
+                .btn-save-all:hover { 
+                    transform: translateY(-2px); 
+                    box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+                }
+                .empty-state {
+                    text-align: center;
+                    padding: 40px 20px;
+                    color: #999;
+                }
+                .empty-state i { font-size: 48px; margin-bottom: 15px; opacity: 0.5; }
+                .empty-state p { font-size: 14px; }
+                .entry-badge {
+                    display: inline-block;
+                    padding: 3px 8px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 500;
+                    margin-right: 5px;
+                }
+                .entry-badge-primary { background: #e3f2fd; color: #1976d2; }
+                .entry-badge-success { background: #e8f5e9; color: #388e3c; }
+                .entry-badge-info { background: #e0f7fa; color: #0097a7; }
+                .saving-overlay {
+                    position: absolute;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(255,255,255,0.9);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    border-radius: 6px;
+                }
+                .saving-overlay i { font-size: 24px; color: #3c8dbc; }
+            </style>
+        `;
+        $('head').append(css);
+    }
+
+    function createDiagnosisRow(diagnosisList) {
+        rowCounter++;
+        var optionsHtml = '<option value="">-- Select Diagnosis --</option><option value="custom">✏ Custom / Free-text</option>';
+        if (diagnosisList && diagnosisList.length) {
+            diagnosisList.forEach(function(d) {
+                var icd = d.icd_code || '';
+                var label = (icd ? '[' + icd + '] ' : '') + d.diagnosis_name;
+                optionsHtml += '<option value="' + d.diagnosis_id + '" data-icd="' + escapeHtml(icd) + '" data-cat="' + escapeHtml(d.category || '') + '">' + escapeHtml(label) + '</option>';
+            });
+        }
+
+        return `
+            <div class="multi-entry-row" data-row="${rowCounter}">
+                <span class="row-number">${rowCounter}</span>
+                <button type="button" class="btn btn-danger btn-xs btn-remove-row" title="Remove"><i class="fa fa-times"></i></button>
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Diagnosis <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm diagnosis-search" placeholder="Search ICD-10 code or name..." autocomplete="off">
+                            <input type="hidden" class="diagnosis-id" name="diagnosis_id[]" value="">
+                        </div>
+                        <div class="form-group" style="display:none;">
+                            <label>Select from List</label>
+                            <select class="form-control form-control-sm diagnosis-select">${optionsHtml}</select>
+                        </div>
+                        <div class="selected-diagnosis" style="margin-top:5px;"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group custom-diagnosis-field" style="display:none;">
+                            <label>Custom Diagnosis</label>
+                            <input type="text" class="form-control form-control-sm" name="diagnosis_text[]" placeholder="Enter custom diagnosis">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Remarks</label>
+                            <textarea class="form-control form-control-sm" name="remarks[]" rows="2" placeholder="Clinical notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function createComplaintRow() {
+        rowCounter++;
+        return `
+            <div class="multi-entry-row" data-row="${rowCounter}">
+                <span class="row-number">${rowCounter}</span>
+                <button type="button" class="btn btn-danger btn-xs btn-remove-row" title="Remove"><i class="fa fa-times"></i></button>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Complaint <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="complain[]" placeholder="Enter patient complaint" required>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Duration</label>
+                            <input type="text" class="form-control form-control-sm" name="duration[]" placeholder="e.g., 3 days">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Severity</label>
+                            <select class="form-control form-control-sm" name="severity[]">
+                                <option value="">-- Select --</option>
+                                <option value="Mild">Mild</option>
+                                <option value="Moderate">Moderate</option>
+                                <option value="Severe">Severe</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function createLaboratoryRow(labCategories, labTests) {
+        rowCounter++;
+        var catOptions = '<option value="">All Categories</option>';
+        if (labCategories && labCategories.length) {
+            labCategories.forEach(function(c) {
+                catOptions += '<option value="' + escapeHtml(c.category_name) + '">' + escapeHtml(c.category_name) + '</option>';
+            });
+        }
+        
+        // Build test options with data attributes for filtering and pricing
+        var testOptions = '<option value="">-- Select Test --</option>';
+        if (labTests && labTests.length) {
+            labTests.forEach(function(t) {
+                var nhisTag = t.is_nhis_covered ? ' [NHIS]' : '';
+                var priceTag = t.charge_amount > 0 ? ' - GH₵' + parseFloat(t.charge_amount).toFixed(2) : '';
+                testOptions += '<option value="' + t.laboratory_id + '" ' +
+                    'data-category="' + escapeHtml(t.category_id || '') + '" ' +
+                    'data-price="' + (t.charge_amount || 0) + '" ' +
+                    'data-nhis-price="' + (t.nhis_price || 0) + '" ' +
+                    'data-nhis="' + (t.is_nhis_covered ? '1' : '0') + '" ' +
+                    'data-specimen="' + escapeHtml(t.specimen_type || '') + '" ' +
+                    'data-code="' + escapeHtml(t.test_code || '') + '">' + 
+                    escapeHtml(t.particular_name) + nhisTag + priceTag + '</option>';
+            });
+        }
+
+        return `
+            <div class="multi-entry-row" data-row="${rowCounter}">
+                <span class="row-number">${rowCounter}</span>
+                <button type="button" class="btn btn-danger btn-xs btn-remove-row" title="Remove"><i class="fa fa-times"></i></button>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select class="form-control form-control-sm lab-category-filter">${catOptions}</select>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Test <span class="text-danger">*</span></label>
+                            <select class="form-control form-control-sm lab-test" name="laboratory_id[]" required>${testOptions}</select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select class="form-control form-control-sm" name="priority[]">
+                                <option value="Normal">Normal</option>
+                                <option value="Urgent">Urgent</option>
+                                <option value="STAT">STAT</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Price</label>
+                            <input type="text" class="form-control form-control-sm lab-price" readonly placeholder="--">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label>Clinical Notes</label>
+                            <input type="text" class="form-control form-control-sm" name="remarks[]" placeholder="Reason for test / clinical indication">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="lab-specimen-note" style="font-size:11px;color:#0097a7;background:#e0f7fa;padding:5px 8px;border-radius:4px;display:none;">
+                            <i class="fa fa-flask"></i> Specimen: <span class="specimen-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function createMedicationRow(drugCategories) {
+        rowCounter++;
+
+        return `
+            <div class="multi-entry-row mm-row" data-row="${rowCounter}">
+                <span class="row-number">${rowCounter}</span>
+                <button type="button" class="btn btn-danger btn-xs btn-remove-row" title="Remove"><i class="fa fa-times"></i></button>
+
+                <!-- Section 1: Medication Selection -->
+                <div class="mm-section-title"><i class="fa fa-search"></i> Medication</div>
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="form-group">
+                            <label>Drug Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm drug-search" placeholder="Search by brand name, generic name, code…" autocomplete="off">
+                            <input type="hidden" class="drug-id" name="drug_name[]" value="">
+                            <input type="hidden" class="drug-text" name="medicine_text[]" value="">
+                            <div class="drug-info" style="font-size:11px;margin-top:3px;color:#888;"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Drug Form</label>
+                            <select class="form-control form-control-sm med-form" name="drug_form[]">
+                                <option value="">-- Form --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Dosage -->
+                <div class="mm-section-title"><i class="fa fa-flask"></i> Dosage</div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Dose <span class="text-danger">*</span></label>
+                            <div class="mm-dose-group">
+                                <input type="number" class="form-control form-control-sm med-dose mm-dose-input" name="dosage[]" placeholder="e.g. 500" min="0" step="0.1">
+                                <select class="form-control form-control-sm med-unit mm-unit-sel" name="unit[]">
+                                    <option value="">Unit</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Frequency <span class="text-danger">*</span></label>
+                            <select class="form-control form-control-sm med-freq" name="freq_code[]">
+                                <option value="">-- Frequency --</option>
+                            </select>
+                            <input type="hidden" name="frequency[]" value="">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Route</label>
+                            <select class="form-control form-control-sm med-route" name="route[]">
+                                <option value="">-- Route --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Days <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm med-days" name="days[]" value="1" min="1" max="365">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Quantity -->
+                <div class="mm-section-title"><i class="fa fa-calculator"></i> Quantity</div>
+                <div class="row" style="align-items:center;">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Total Quantity</label>
+                            <input type="number" class="form-control form-control-sm med-qty" name="total_qty[]" placeholder="Auto" min="1" readonly>
+                            <div class="mm-qty-auto" style="font-size:11px;color:#27ae60;font-weight:600;margin-top:2px;"></div>
+                            <label style="font-size:11px;color:#888;cursor:pointer;margin-top:3px;">
+                                <input type="checkbox" class="med-qty-override"> Override quantity
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="mm-high-dose-warn" style="background:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:7px 10px;font-size:12px;color:#856404;display:none;"></div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Instructions -->
+                <div class="mm-section-title"><i class="fa fa-comment"></i> Instructions</div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <textarea class="form-control form-control-sm med-instruction" name="instruction[]" rows="2" placeholder="Instructions to patient (e.g. Take after meals, complete full course)"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="font-size:11px;color:#555;">Advice</label>
+                            <input type="text" class="form-control form-control-sm" name="advice[]" placeholder="e.g. Avoid driving">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Preview -->
+                <div class="mm-preview-box" style="background:#f0f8ff;border:1px solid #b8d4e8;border-radius:6px;padding:10px 12px;margin-top:6px;display:none;">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#3c8dbc;margin-bottom:4px;letter-spacing:.5px;"><i class="fa fa-eye"></i> Prescription Preview</div>
+                    <div class="med-preview-content" style="font-family:monospace;font-size:12px;white-space:pre-wrap;color:#1a1a2e;"></div>
+                </div>
+
+            </div>
+        `;
+    }
+
+    function createSonographyRow(sonoItems, categories) {
+        rowCounter++;
+        
+        // Build category options
+        var categoryOptions = '<option value="">All Categories</option>';
+        var uniqueCategories = {};
+        if (sonoItems && sonoItems.length) {
+            sonoItems.forEach(function(s) {
+                if (s.category && !uniqueCategories[s.category]) {
+                    uniqueCategories[s.category] = true;
+                    categoryOptions += '<option value="' + escapeHtml(s.category) + '">' + escapeHtml(s.category) + '</option>';
+                }
+            });
+        }
+        
+        // Build scan options with data attributes for filtering
+        var itemOptions = '<option value="">-- Select Scan --</option>';
+        if (sonoItems && sonoItems.length) {
+            sonoItems.forEach(function(s) {
+                var nhisTag = s.is_nhis_covered ? ' [NHIS]' : '';
+                var priceTag = s.price > 0 ? ' - GH₵' + parseFloat(s.price).toFixed(2) : '';
+                itemOptions += '<option value="' + s.item_id + '" ' +
+                    'data-category="' + escapeHtml(s.category || '') + '" ' +
+                    'data-price="' + (s.price || 0) + '" ' +
+                    'data-nhis-price="' + (s.nhis_price || 0) + '" ' +
+                    'data-nhis="' + (s.is_nhis_covered ? '1' : '0') + '" ' +
+                    'data-body-part="' + escapeHtml(s.body_part || '') + '" ' +
+                    'data-preparation="' + escapeHtml(s.preparation || '') + '">' + 
+                    escapeHtml(s.item_name) + nhisTag + priceTag + '</option>';
+            });
+        }
+
+        return `
+            <div class="multi-entry-row" data-row="${rowCounter}">
+                <span class="row-number">${rowCounter}</span>
+                <button type="button" class="btn btn-danger btn-xs btn-remove-row" title="Remove"><i class="fa fa-times"></i></button>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select class="form-control form-control-sm sono-category-filter">${categoryOptions}</select>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Scan Type <span class="text-danger">*</span></label>
+                            <select class="form-control form-control-sm sono-item" name="sonography_item_id[]" required>${itemOptions}</select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select class="form-control form-control-sm" name="priority[]">
+                                <option value="Normal">Normal</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Price</label>
+                            <input type="text" class="form-control form-control-sm sono-rate" readonly placeholder="--">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label>Clinical Indication</label>
+                            <input type="text" class="form-control form-control-sm" name="remarks[]" placeholder="Reason for scan (e.g., suspected pregnancy, abdominal pain)">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="sono-preparation-note" style="font-size:11px;color:#856404;background:#fff3cd;padding:5px 8px;border-radius:4px;display:none;">
+                            <i class="fa fa-info-circle"></i> <span class="prep-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function createRadiologyRow(radiologyTests) {
+        rowCounter++;
+        var testOptions = '<option value="">-- Select Test --</option>';
+        if (radiologyTests && radiologyTests.length) {
+            radiologyTests.forEach(function(t) {
+                var nhisBadge = t.is_nhis_covered ? ' [NHIS]' : '';
+                var priceStr = t.price > 0 ? ' (GHS ' + parseFloat(t.price).toFixed(2) + ')' : '';
+                testOptions += '<option value="' + t.test_id + '" data-nhis="' + t.is_nhis_covered + '">' + escapeHtml(t.test_name) + priceStr + nhisBadge + '</option>';
+            });
+        }
+
+        return `
+            <div class="multi-entry-row" data-row="${rowCounter}">
+                <span class="row-number">${rowCounter}</span>
+                <button type="button" class="btn btn-danger btn-xs btn-remove-row" title="Remove"><i class="fa fa-times"></i></button>
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="form-group">
+                            <label>Test <span class="text-danger">*</span></label>
+                            <select class="form-control form-control-sm radiology-test" name="radiology_test_id[]" required>${testOptions}</select>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select class="form-control form-control-sm" name="priority[]">
+                                <option value="normal">Normal</option>
+                                <option value="urgent">Urgent</option>
+                                <option value="stat">STAT (Emergency)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Clinical Notes</label>
+                            <input type="text" class="form-control form-control-sm" name="clinical_notes[]" placeholder="Reason for test / clinical indication">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function addEntry(type, data) {
+        var self = this;
+        var $container = $('#' + self.config.containerId);
+        var rowHtml = '';
+        
+        console.log('DEBUG: addEntry called for type:', type);
+        console.log('DEBUG: container found:', $container.length > 0);
+        console.log('DEBUG: container ID:', self.config.containerId);
+
+        try {
+            switch(type) {
+                case 'diagnosis':
+                    rowHtml = createDiagnosisRow(data.diagnosisList);
+                    break;
+                case 'complaint':
+                    rowHtml = createComplaintRow();
+                    break;
+                case 'laboratory':
+                    if (!data.categories || data.categories.length === 0) {
+                        console.warn('Laboratory: No categories provided');
+                    }
+                    if (!data.tests || data.tests.length === 0) {
+                        console.warn('Laboratory: No tests provided');
+                    }
+                    console.log('DEBUG: Creating lab row with', data.categories.length, 'categories and', data.tests.length, 'tests');
+                    rowHtml = createLaboratoryRow(data.categories, data.tests);
+                    console.log('DEBUG: Row HTML length:', rowHtml.length);
+                    break;
+                case 'medication':
+                    rowHtml = createMedicationRow(data.categories);
+                    break;
+                case 'sonography':
+                    if (!data.items || data.items.length === 0) {
+                        console.warn('Sonography: No items provided');
+                    }
+                    rowHtml = createSonographyRow(data.items);
+                    break;
+                case 'radiology':
+                    if (!data.tests || data.tests.length === 0) {
+                        console.warn('Radiology: No tests provided');
+                    }
+                    rowHtml = createRadiologyRow(data.tests);
+                    break;
+            }
+        } catch (e) {
+            console.error('Error creating row for type ' + type + ':', e);
+            return;
+        }
+
+        $container.find('.empty-state').remove();
+        $container.append(rowHtml);
+        var lastRowHtml = $container.find('.multi-entry-row:last').html();
+        console.log('DEBUG: Row appended, container children count:', $container.children().length);
+        console.log('DEBUG: Last row HTML preview:', lastRowHtml ? lastRowHtml.substring(0, 200) : 'no HTML');
+        self.updateSummary();
+        self.initRowBindings($container.find('.multi-entry-row:last'), type, data);
+
+        if (self.config.onEntryAdded) self.config.onEntryAdded(self.rowCounter);
+    }
+
+    function removeEntry($row) {
+        $row.fadeOut(200, function() {
+            $(this).remove();
+            renumberRows();
+            updateSummary();
+            if (config.onEntryRemoved) config.onEntryRemoved();
+        });
+    }
+
+    function renumberRows() {
+        var $container = $('#' + config.containerId);
+        $container.find('.multi-entry-row').each(function(index) {
+            $(this).find('.row-number').text(index + 1);
+        });
+        if ($container.find('.multi-entry-row').length === 0) {
+            var noDataWarning = '';
+            if (config.module === 'sonography' || config.module === 'radiology' || config.module === 'laboratory') {
+                noDataWarning = '<p style="color:#999;font-size:12px;margin-top:8px;">If items do not appear, check console for data loading errors.</p>';
+            }
+            $container.html('<div class="empty-state"><i class="fa fa-plus-circle"></i><p>Click "Add" button to add items</p>' + noDataWarning + '</div>');
+        }
+    }
+
+    function updateSummary() {
+        var count = $('#' + config.containerId).find('.multi-entry-row').length;
+        $('#' + config.countId).text(count);
+        $('#' + config.saveButtonId).prop('disabled', count === 0);
+    }
+
+    function initRowBindings($row, type, data) {
+        // Remove button
+        $row.find('.btn-remove-row').on('click', function() {
+            removeEntry($row);
+        });
+
+        // Type-specific bindings
+        if (type === 'diagnosis') {
+            initDiagnosisBindings($row, data.diagnosisList);
+        } else if (type === 'laboratory') {
+            initLabBindings($row, data);
+        } else if (type === 'medication') {
+            initMedicationBindings($row, data);
+        } else if (type === 'sonography') {
+            initSonographyBindings($row, data);
+        }
+    }
+
+    function initDiagnosisBindings($row, diagnosisList) {
+        var $search = $row.find('.diagnosis-search');
+        var $select = $row.find('.diagnosis-select');
+        var $hiddenId = $row.find('.diagnosis-id');
+        var $customField = $row.find('.custom-diagnosis-field');
+        var $display = $row.find('.selected-diagnosis');
+
+        // Autocomplete search
+        $search.autocomplete({
+            source: function(request, response) {
+                $.ajax({
+                    url: baseUrl + 'app/opd/search_diagnosis_json',
+                    type: 'GET',
+                    data: { term: request.term },
+                    dataType: 'json',
+                    success: function(data) {
+                        var results = [];
+                        if (data && data.length) {
+                            data.forEach(function(item) {
+                                results.push({
+                                    label: (item.code ? '[' + item.code + '] ' : '') + item.description,
+                                    value: item.description,
+                                    id: item.id,
+                                    code: item.code,
+                                    category: item.category
+                                });
+                            });
+                        }
+                        results.push({ label: '✏ Enter custom diagnosis', value: request.term, id: 'custom', isCustom: true });
+                        response(results);
+                    }
+                });
+            },
+            minLength: 2,
+            select: function(event, ui) {
+                if (ui.item.isCustom || ui.item.id === 'custom') {
+                    $hiddenId.val('');
+                    $customField.show().find('input').val(ui.item.value);
+                    $display.html('<span class="entry-badge entry-badge-info">Custom</span> ' + escapeHtml(ui.item.value));
+                } else {
+                    $hiddenId.val(ui.item.id);
+                    $customField.hide();
+                    var badge = ui.item.code ? '<span class="entry-badge entry-badge-primary">' + ui.item.code + '</span> ' : '';
+                    $display.html(badge + escapeHtml(ui.item.value));
+                }
+                return false;
+            }
+        });
+
+        // Dropdown change
+        $select.on('change', function() {
+            var val = $(this).val();
+            if (val === 'custom') {
+                $hiddenId.val('');
+                $customField.show();
+                $display.html('');
+            } else if (val) {
+                $hiddenId.val(val);
+                $customField.hide();
+                var $opt = $(this).find('option:selected');
+                var icd = $opt.data('icd');
+                var badge = icd ? '<span class="entry-badge entry-badge-primary">' + icd + '</span> ' : '';
+                $display.html(badge + escapeHtml($opt.text().replace(/^\[[^\]]+\] /, '')));
+            }
+        });
+    }
+
+    function initLabBindings($row, data) {
+        var $categoryFilter = $row.find('.lab-category-filter');
+        var $test = $row.find('.lab-test');
+        var $price = $row.find('.lab-price');
+        var $specimenNote = $row.find('.lab-specimen-note');
+        var $specimenText = $row.find('.specimen-text');
+
+        // Category filter - show/hide test options
+        $categoryFilter.on('change', function() {
+            var selectedCat = $(this).val();
+            $test.find('option').each(function() {
+                var $opt = $(this);
+                if (!$opt.val()) return; // Keep placeholder
+                var optCat = $opt.data('category') || '';
+                if (!selectedCat || optCat === selectedCat) {
+                    $opt.show();
+                } else {
+                    $opt.hide();
+                }
+            });
+            // Reset selection if current selection is now hidden
+            var $selected = $test.find('option:selected');
+            if ($selected.val() && $selected.css('display') === 'none') {
+                $test.val('');
+                $price.val('');
+                $specimenNote.hide();
+            }
+        });
+
+        // Test selection - show price and specimen info
+        $test.on('change', function() {
+            var $selected = $(this).find('option:selected');
+            var price = $selected.data('price') || 0;
+            var nhisPrice = $selected.data('nhis-price') || 0;
+            var isNhis = $selected.data('nhis') === 1 || $selected.data('nhis') === '1';
+            var specimen = $selected.data('specimen') || '';
+            
+            if (price > 0) {
+                $price.val('GH₵' + parseFloat(price).toFixed(2));
+                if (isNhis) {
+                    $price.css('color', '#27ae60');
+                } else {
+                    $price.css('color', '#333');
+                }
+            } else {
+                $price.val('--');
+            }
+            
+            if (specimen) {
+                $specimenText.text(specimen);
+                $specimenNote.show();
+            } else {
+                $specimenNote.hide();
+            }
+        });
+    }
+
+    function initMedicationBindings($row, data) {
+        var $search    = $row.find('.drug-search');
+        var $hiddenId  = $row.find('.drug-id');
+        var $hiddenText = $row.find('.drug-text');
+        var $info      = $row.find('.drug-info');
+
+        /* Populate Phase 3 master selects (requires MedicationModal lib) */
+        if (typeof MedicationModal !== 'undefined') {
+            MedicationModal.loadMasters(function() {
+                MedicationModal.populateFreqSelect($row.find('.med-freq'));
+                MedicationModal.populateRouteSelect($row.find('.med-route'));
+                MedicationModal.populateFormSelect($row.find('.med-form'));
+                MedicationModal.populateUnitSelect($row.find('.med-unit'), 'mg');
+            });
+            /* Bind qty-calc / preview / high-dose warn */
+            MedicationModal.bindRow($row);
+        }
+
+        /* Drug autocomplete with stock and price info */
+        $search.autocomplete({
+            source: function(request, response) {
+                $.ajax({
+                    url: baseUrl + 'app/pharmacy/drug_search_json',
+                    type: 'GET',
+                    data: { term: request.term },
+                    dataType: 'json',
+                    success: function(res) {
+                        var results = [];
+                        if (res && res.length) {
+                            res.forEach(function(item) {
+                                results.push({
+                                    label: item.drug_name + (item.strength ? ' ' + item.strength : '') + (item.dosage_form ? ' [' + item.dosage_form + ']' : ''),
+                                    value: item.drug_name,
+                                    id:    item.drug_id,
+                                    stock: item.nStock  || 0,
+                                    price: item.nPrice  || 0,
+                                    dosage_form: item.dosage_form || '',
+                                    route: item.route  || '',
+                                    standard_dosage: item.standard_dosage || ''
+                                });
+                            });
+                        }
+                        response(results);
+                    }
+                });
+            },
+            minLength: 2,
+            select: function(event, ui) {
+                $hiddenId.val(ui.item.id);
+                $hiddenText.val(ui.item.value);
+                var stockClass = ui.item.stock > 0 ? 'text-success' : 'text-danger';
+                $info.html(
+                    '<span class="' + stockClass + '"><i class="fa fa-cubes"></i> Stock: ' + ui.item.stock + '</span>' +
+                    ' &nbsp;|&nbsp; <span class="text-info"><i class="fa fa-money"></i> GH\u20b5' + parseFloat(ui.item.price || 0).toFixed(2) + '</span>'
+                );
+                /* Auto-populate drug form and route if available */
+                if (ui.item.dosage_form) $row.find('.med-form').val(ui.item.dosage_form);
+                if (ui.item.route)       $row.find('.med-route').val(ui.item.route);
+                /* Trigger MedicationModal event for qty-calc / preview update */
+                if (typeof MedicationModal !== 'undefined') {
+                    $row.trigger('drug-selected', [ui.item]);
+                }
+                return false;
+            }
+        });
+    }
+
+    function initSonographyBindings($row, data) {
+        var $categoryFilter = $row.find('.sono-category-filter');
+        var $item = $row.find('.sono-item');
+        var $rate = $row.find('.sono-rate');
+        var $prepNote = $row.find('.sono-preparation-note');
+        var $prepText = $row.find('.prep-text');
+
+        // Category filter - show/hide scan options
+        $categoryFilter.on('change', function() {
+            var selectedCat = $(this).val();
+            $item.find('option').each(function() {
+                var $opt = $(this);
+                if (!$opt.val()) return; // Keep placeholder
+                var optCat = $opt.data('category') || '';
+                if (!selectedCat || optCat === selectedCat) {
+                    $opt.show();
+                } else {
+                    $opt.hide();
+                }
+            });
+            // Reset selection if current selection is now hidden
+            var $selected = $item.find('option:selected');
+            if ($selected.val() && $selected.css('display') === 'none') {
+                $item.val('');
+                $rate.val('');
+                $prepNote.hide();
+            }
+        });
+
+        // Scan selection - show price and preparation info
+        $item.on('change', function() {
+            var $selected = $(this).find('option:selected');
+            var price = $selected.data('price') || 0;
+            var nhisPrice = $selected.data('nhis-price') || 0;
+            var isNhis = $selected.data('nhis') === 1 || $selected.data('nhis') === '1';
+            var preparation = $selected.data('preparation') || '';
+            
+            if (price > 0) {
+                $rate.val('GH₵' + parseFloat(price).toFixed(2));
+                if (isNhis) {
+                    $rate.css('color', '#27ae60');
+                } else {
+                    $rate.css('color', '#333');
+                }
+            } else {
+                $rate.val('--');
+            }
+            
+            if (preparation) {
+                $prepText.text(preparation);
+                $prepNote.show();
+            } else {
+                $prepNote.hide();
+            }
+        });
+    }
+
+    function collectEntries(type) {
+        var entries = [];
+        $('#' + config.containerId).find('.multi-entry-row').each(function() {
+            var $row = $(this);
+            var entry = {};
+
+            switch(type) {
+                case 'diagnosis':
+                    entry.diagnosis_id = $row.find('.diagnosis-id').val();
+                    entry.diagnosis_text = $row.find('[name="diagnosis_text[]"]').val() || '';
+                    // If no diagnosis_id and no custom text, use the search field value
+                    if (!entry.diagnosis_id && !entry.diagnosis_text) {
+                        entry.diagnosis_text = $row.find('.diagnosis-search').val() || '';
+                    }
+                    entry.remarks = $row.find('[name="remarks[]"]').val() || '';
+                    if (entry.diagnosis_id || entry.diagnosis_text) entries.push(entry);
+                    break;
+                case 'complaint':
+                    entry.complain = $row.find('[name="complain[]"]').val();
+                    entry.duration = $row.find('[name="duration[]"]').val() || '';
+                    entry.severity = $row.find('[name="severity[]"]').val() || '';
+                    if (entry.complain) entries.push(entry);
+                    break;
+                case 'laboratory':
+                    entry.laboratory_id = $row.find('[name="laboratory_id[]"]').val();
+                    entry.priority = $row.find('[name="priority[]"]').val() || 'Normal';
+                    entry.remarks = $row.find('[name="remarks[]"]').val() || '';
+                    console.log('DEBUG: Lab row collected:', entry);
+                    if (entry.laboratory_id) entries.push(entry);
+                    break;
+                case 'medication':
+                    entry.drug_name    = $row.find('[name="drug_name[]"]').val() || '';
+                    entry.medicine_text = $row.find('[name="medicine_text[]"]').val() || $row.find('.drug-search').val() || '';
+                    entry.dosage       = $row.find('[name="dosage[]"]').val() || '';
+                    entry.unit         = $row.find('[name="unit[]"]').val() || '';
+                    entry.freq_code    = $row.find('[name="freq_code[]"]').val() || '';
+                    entry.frequency    = $row.find('[name="frequency[]"]').val() || entry.freq_code;
+                    entry.route        = $row.find('[name="route[]"]').val() || '';
+                    entry.drug_form    = $row.find('[name="drug_form[]"]').val() || '';
+                    entry.days         = parseInt($row.find('[name="days[]"]').val()) || 1;
+                    entry.total_qty    = parseInt($row.find('[name="total_qty[]"]').val()) || 0;
+                    entry.instruction  = $row.find('[name="instruction[]"]').val() || '';
+                    entry.advice       = $row.find('[name="advice[]"]').val() || '';
+                    if (entry.drug_name || entry.medicine_text) entries.push(entry);
+                    break;
+                case 'sonography':
+                    entry.sonography_item_id = $row.find('[name="sonography_item_id[]"]').val();
+                    entry.priority = $row.find('[name="priority[]"]').val() || 'Normal';
+                    entry.remarks = $row.find('[name="remarks[]"]').val() || '';
+                    console.log('DEBUG: Sono row collected:', entry);
+                    if (entry.sonography_item_id) entries.push(entry);
+                    break;
+                case 'radiology':
+                    entry.radiology_test_id = $row.find('[name="radiology_test_id[]"]').val();
+                    entry.priority = $row.find('[name="priority[]"]').val() || 'normal';
+                    entry.clinical_notes = $row.find('[name="clinical_notes[]"]').val() || '';
+                    if (entry.radiology_test_id) entries.push(entry);
+                    break;
+            }
+        });
+        return entries;
+    }
+
+    function saveAll(type, opdNo, patientNo, callback) {
+        var entries = collectEntries(type);
+        console.log('DEBUG: saveAll called for type:', type);
+        console.log('DEBUG: Entries collected:', entries);
+        if (entries.length === 0) {
+            alert('Please add at least one item before saving.');
+            return;
+        }
+
+        var $modal = $('.multi-entry-modal');
+        $modal.find('.modal-body').append('<div class="saving-overlay"><i class="fa fa-spinner fa-spin"></i></div>');
+
+        // Get CSRF token from cookie or meta tag
+        var csrfName = 'hms_csrf_token';
+        var csrfToken = '';
+        
+        // Try to get from cookie
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.indexOf('hms_csrf_cookie=') === 0) {
+                csrfToken = cookie.substring('hms_csrf_cookie='.length);
+                break;
+            }
+        }
+        
+        // Try to get from hidden input if cookie not found
+        if (!csrfToken) {
+            var $csrfInput = $('input[name="hms_csrf_token"]');
+            if ($csrfInput.length) {
+                csrfToken = $csrfInput.val();
+            }
+        }
+
+        var postData = {
+            opd_no: opdNo,
+            patient_no: patientNo,
+            entries: JSON.stringify(entries)
+        };
+        postData[csrfName] = csrfToken;
+
+        $.ajax({
+            url: baseUrl + 'app/opd/save_' + type + '_batch',
+            type: 'POST',
+            data: postData,
+            dataType: 'json',
+            success: function(response) {
+                $modal.find('.saving-overlay').remove();
+                if (response.success) {
+                    if (config.onSaveSuccess) config.onSaveSuccess(response);
+                    if (callback) callback(true, response);
+                } else {
+                    alert(response.message || 'Error saving items');
+                    if (config.onSaveError) config.onSaveError(response);
+                    if (callback) callback(false, response);
+                }
+            },
+            error: function(xhr, status, error) {
+                $modal.find('.saving-overlay').remove();
+                var errorMsg = 'Network error. Please try again.';
+                if (xhr.responseText) {
+                    console.error('Server response:', xhr.responseText);
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        if (resp.message) errorMsg = resp.message;
+                    } catch(e) {
+                        // Check if it's a PHP error
+                        if (xhr.responseText.indexOf('error') > -1 || xhr.responseText.indexOf('Error') > -1) {
+                            errorMsg = 'Server error occurred. Check console for details.';
+                        }
+                    }
+                }
+                alert(errorMsg);
+                if (callback) callback(false, { message: error });
+            }
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
+    function resetModal() {
+        $('#' + config.containerId).html('<div class="empty-state"><i class="fa fa-plus-circle"></i><p>Click "Add" button to add items</p></div>');
+        rowCounter = 0;
+        updateSummary();
+    }
+
+    return {
+        init: init,
+        addEntry: addEntry,
+        removeEntry: removeEntry,
+        collectEntries: collectEntries,
+        saveAll: saveAll,
+        resetModal: resetModal,
+        updateSummary: updateSummary
+    };
+})();

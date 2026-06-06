@@ -1,0 +1,426 @@
+
+
+===== PAGE 23 =====
+4.1 General Overview 
+This section provides a detailed description of all the features of the application. 
+4.2 General Outlook 
+The application has four (4) major views or menus namely Claims, New Claim, Reports 
+and Settings.  Figure 4-1 shows a navigation flow through the various views of the 
+application. 
+Figure 4-1: Navigation flow through the various views of the application 
+ 
+Additionally, the left panel of the home screen also provides information on the facility 
+name, facility type, prescribing level of the facility, the login status of the user, entry and 
+performance statistics. 
+ 
+4.2.1 Home Screen and Navigation of views 
+Figure 4-2 illustrates the home screen also representing the “Claims” menu of the 
+application.  
+ 
+ 
+Views
+CLAIMS
+Claims by year
+List of claims
+Merge Claims
+NEW CLAIM
+Entry form
+REPORTS
+Reports
+SETTINGS
+Manage Users
+Check for update
+Backup Data
+Server Options
+Reload 
+Application
+
+
+===== PAGE 24 =====
+Figure 4-2: Home screen of the application with no claims data 
+ 
+As observed in the figure above, claims are visualized by year and month. By default the 
+application loads claims data for the current year. The year under view can be seen at the 
+top corner, leftward of the home screen. To change the year of view, click on “Change 
+Year” and select the year of interest (Figure 4-3). However, it must be noted that the 
+drop down list only contains the list of years for which claims have been entered. 
+Figure 4-3 : Drop down menu for changing year in view 
+ 
+ Months with no claims data are greyed out as seen in Figure 3-2. However months with 
+claims data have a white background with a summary of the volumes of data captured 
+for that month (Figure 4-4).
+
+
+===== PAGE 25 =====
+Figure 4-4:  Home screen of the application with claims data 
+ 
+To view the list of claims for any month, click on the month of interest. Claims are 
+grouped according to the various types of services. Figure 4-5 shows the list of claims for 
+the month of June 2020.  
+Figure 4-5: List of claims for a month 
+ 
+As can be observed in Figure 4-5, each service type has a tab which in turn provides 
+information on the total volume of claims for that service type. The “ALL” tab contains 
+all claims that have been entered for that month.  
+Under each major tab is a further grouping of data based on the specialty attended.  
+Each data row represents an entered claim specifying the date of the claim, member 
+number, name of member, date claim was generated, type of service and the cost of 
+the claim. The two (2) icons (indicated with the arrow in figure 4-5) are used to either
+
+
+===== PAGE 26 =====
+edit or delete a claim. The icon on the left, the delete button, performs the action of 
+deleting a claim while the icon on the right, the edit button, performs the action of 
+opening a claim for editing. A detailed description of these two features can be found in 
+the section 4.3. 
+To preview a claim, click on the preview button  next to the claim of interest. This will 
+show the claim in its traditional view (Figure 4-6). Printing of claims can be done in this 
+view, if necessary. 
+Figure 4-6: Claim Preview 
+   
+Figure 4-7: Claim Preview
+
+
+===== PAGE 27 =====
+Clicking on the three dots at the top right corner as shown in the arrow in Figure 4-6 
+shows two functionalities, the “Entry Info” and “Edit Claim” button. By clicking on Entry 
+Info, details of all users who have interacted with the claim in view are shown as depicted 
+in the figure below.  
+ 
+The Edit Claim button (Figure 4-5) also allows users to bring up the claim in the edit 
+mode. 
+4.3 Claims Validation 
+One of the most important features of the application is to help with claims validation. 
+Claims generation using the application isn’t allowed for HMS users as this is the primary 
+role of whichever HMS being used at the health facility.  
+The two mode of communication or interaction between the CLAIM-it application and 
+the HMS is either via XML or API. However, the only XML mode will be demonstrated in 
+this manual. This is because the nature of the API interaction is HMS specific.  
+The HMS being used should be first compliant with the exchange protocol standard of 
+the CLAIM-it application in order for it to generate a valid XML that will be accepted by 
+CLAIM-it.   
+To import or upload the generated XML for validation by CLAIM-it;  
+1. Click on the Merge Claims button at the top of the home screen . This should 
+open the “CLAIMit HMS Integration Toolkit”. This is illustrated in Figure 4-7 below.
+
+
+===== PAGE 28 =====
+Figure 4-8: CLAIMit HMS Integration Toolkit 
+ 
+2. Drag and drop the XML file in the area specified or click on “or CLICK to pick 
+Claims Data file” button and browse to the location of the XML file and select it. 
+(Indicated by green arrow in Figure 4-7) 
+Figure 4-9 : Claims Import Options 
+ 
+ 
+3. Click on  
+a. “START CLAIMS IMPORT” if you wish to validate your claims and save all 
+passed claims to the database. 
+b. “VALIDATE ONLY” if you are only interesting in validating the claims 
+without saving claims that passed validation. 
+c. “CONVERT XML” is only meant for special which will only be 
+communicated to applicable health providers.
+
+
+===== PAGE 29 =====
+Figure 4-9 : Validation of imported claims 
+ 
+4. Regardless of the selected option, the XML file will be evaluated by the 
+application after which claims validation will start giving the user a status of 
+activity as illustrated in Figure 4-9. The status panel gives information, in real-time, 
+the number of claims that have passed or failed so far. It also informs the user 
+about the estimated time for completion of validation. To abort the validation 
+process, click on “Abort”. 
+ 
+5. At the end of claims validation, the user is given a validation report which 
+indicates clearly claims that passed or failed, with reasons to which the claim 
+failed validation. To download and save the validation report, click the “Download 
+Report” button and save the report to the desired location on your computer. 
+Figure 4-10, illustrates this. 
+Figure 4-10 : Accessing Claims Validation Report
+
+
+===== PAGE 30 =====
+Note: The report comes as an HTML document and hence can be viewed in any known 
+web browser application (E.g. Google Chrome, Mozilla Firefox, Microsoft Edge, etc). 
+6. To validation report gives the status on all claims that were processed, indicating 
+claims with issues and the reasons identified as the challenge. To view more 
+details on any reported issue, click on “DETAILS” found to the extreme right of 
+each claim row. This is illustrated in Figure 4-11. 
+Figure 4-11 : Claims Validation Report 
+ 
+ 
+7. The user can also toggle to view only claims with errors or otherwise. This can be 
+achieved by the use of the toggle buttons illustrated in Figure 4-12. 
+Figure 4-12: Validation Status Toggling
+
+
+===== PAGE 31 =====
+8. All issues reported by in the report can be resolved in the facility’s HMS and a new 
+XML generated for re-validation. 
+ 
+9. Once claims are imported they can be accessed for viewing and further 
+processing, at the “Claims” section of the application. Click on “Claims” to return 
+to the Home Screen of the application to view all successfully imported claims. 
+Here, claims are grouped under their various respective months depending on the 
+date of service provision.  
+ 
+ 
+ 
+4.3.1 Attachment of Documents 
+There are instances where it becomes necessary to attach supporting documents to a 
+claim. Supporting documents includes but not limited to prescriptions, lab results and lab 
+requests. For instance, the use of some medicines on the NHIS medicines list requires the 
+attachment of lab results to support the claim.  
+To attach a supporting document follow the following steps; 
+1. Go to the attachments section of the entry form and click on   icon as 
+illustrated in Figure 4-26 
+Figure 4-13 Attachment section of entry form 
+ 
+ You can alternatively drag and drop your file in this area
+
+
+===== PAGE 32 =====
+2. This will open an explorer window, that allows users to select the appropriate file 
+to attach. 
+3. After selecting the file to attach, the user will be required to select the type or 
+category (prescription, lab request, scan etc) of attachment.  
+Figure 4-14: Attachment Details 
+ 
+4. Click on “Attach” button to save attached file. This will look similar to Figure 4-28, 
+showing the name of the attached file and a button to delete the attachment. 
+However, a delete confirmation will be required before deletion. The user can 
+click on the attached file to view the document as well. Optionally, the user can 
+also add a comment to the attachment if necessary. Illustrated in Figure 4-14. 
+ 
+Figure 4-15: View for an attached file 
+ 
+5. To attach another document, repeat the process. 
+ 
+4.4 Deleting Claims 
+To delete a claim, follow the following steps; 
+1.   Click on the  menu and select your preferred year and month. 
+2. At the claim list view, use the type of service tabs (OPD, IPD, DIAG, etc.) to narrow 
+your search. 
+Use these to either delete or update an attachment
+
+
+===== PAGE 33 =====
+3. You may manually search for the claim or use the search feature to do so.  
+4. Once you find the claim you want to delete, click on the  found at the right 
+side of the row. This will pop-up a message asking you to confirm the delete. Click 
+on  to delete the claim. Please note that once a claim is deleted, it 
+cannot be retrieved. 
+An alternative approach is opening the claim in the edit mode and clicking on the 
+“Delete” button at the bottom of the form. 
+HMS users have the option of deleting ALL imported claims by clicking on the Delete 
+All button as illustrated in Figure 4-16 below. 
+Figure 4-16: View for an attached file 
+ 
+ 
+4.5 Searching for claims 
+Claims can be searched for by either visually perusing a list of claims or using the 
+advanced search option. The steps for doing the latter are specified below; 
+1. Click on the  menu and select your preferred year and month. 
+2. Click on the  icon, found at the right top section of the page. This will open a 
+search form. 
+3. The user is allowed to search for a claim or claims using one or a combination of 
+the parameters available on the search form. The parameters are; 
+a. Member no. 
+b. Member name 
+c. Claims Check Code (CCC)
+
+
+===== PAGE 34 =====
+d. Date range (Start date and end date) 
+4. Once the needed parameters are entered, click on the  button to start 
+the search. 
+5. Search results are aggregated under a “Search tab” with an indication of the total 
+number of claims found. 
+ 
+4.6 Preparing Claims for Submission (Exporting Claims) 
+Once all claims have been entered for a month, the next major step is to prepare the 
+claims for submission to NHIS. Claims can only be exported for submission by a user with 
+such privileges (refer to section 3.2). The application offers two (2) options for claims 
+submission. The user has the option to; 
+1. Uploading claims directly to the NHIS server via the internet, or  
+2. Downloading an encrypted claims file and physically sending it to NHIS using a 
+flash drive,  
+To prepare claims for submission, the following are the steps; 
+1. Open the month of interest (refer to section 4.1) and click on the submit clams 
+button =>  button found at the centre left section of the view (indicated by 
+arrow in Figure 4-17). This should open a page that provides more detailed 
+information on the action(s) to be performed (illustrated in Figure 4-18). 
+Figure 4-17: Claims list page showing the Export button
+
+
+===== PAGE 35 =====
+Figure 4-18: Claims Submission / Export page 
+ 
+The submission / export page displays among others the total volume and cost of claims 
+segregated by type of service and the percentage distribution for service and medicine 
+cost. This is illustrated in Figure 4-18 above. 
+Additionally, the user also gets to see information on all recent claims submissions and 
+uploads. It is also recommended that a submission advice report be generated before 
+claims are submitted. To do this, refer to the Reports section of this document. 
+2. Click on Submit Online button  to start the online process of 
+claims submission which will go through the following processes; 
+2.0.1 The system will request for a confirmation from the user to start the online 
+claims submission process, as illustrated in Figure 4-19 below. 
+Figure 4-19: Confirmation for online submission 
+ 
+ Click on Yes Upload to confirm (requires internet)
+
+
+===== PAGE 36 =====
+2.0.2 The process will initiate once the user authorizes the submission by re-
+entering the password. Please note that only the Insurance Officer role has the 
+user privilege of submitting claims online. 
+ 
+ The status or progress of the ongoing submission will be displayed to the user 
+as shown in Figure 4-20 and 4-21 below.  The upload process may happen 
+within a minute or more depending on the current queue.  
+Figure 4-20: Submission progress monitor 
+ 
+ 
+Figure 4-21: Submission status indicator
+
+
+===== PAGE 37 =====
+2.0.3 The final step of the online submission process is for the user to wait for a 
+feedback, to indicate if the submission was successful or otherwise. (as 
+illustrated in Figure 4-22). A submission confirmation email is sent to the email 
+address of the user or health facility once claims are successfully submitted. 
+Should there be a failure in anyway, the user will be informed via the 
+application as illustrated below.  
+Figure 4-22: Submission status indicator 
+ 
+ 
+To submit claims offline go through the following steps; 
+1. Click on the Submit Offline button  as shown in Figure 4-34. 
+2. This will generate an encrypted claims file which can be saved on a flash drive 
+(popularly called, Pen drive). 
+3. Submit this file on the flash drive to the closest NHIA district office or Claims 
+Processing Centre. 
+4. A confirmation receipt will be printed and given to the submitter while an email is 
+equally sent the email address assigned to the providers account.
+
+
+===== PAGE 39 =====
+5.1 General Information 
+This section describes the update feature of the application that enables users to keep 
+the application up to date.  
+The claim-it application, from time to time will require a system update. The update 
+feature of the application enable users to keep the application up to date.  
+5.2 System Update 
+There are two (2) major types of system updates. 
+1. Policy and tariff updates: This has to do with update to claims generation 
+protocols, GDRGs and tariffs. 
+2. Application updates: This refers to update to the structure and (other 
+component) feel of the application. 
+However, all these types of updates are installed in the same manner. Once system 
+updates are available, emails and text messages are sent to all users of the application to 
+notify them. 
+5.3 Installing Updates 
+Updates can either be installed directly via the internet or downloaded and installed 
+offline.  
+5.3.1 Direct Update  
+To update the application directly via the internet, do the following; 
+1. Click on the Settings  button and click on “Check for Update”. 
+Figure 5-01: Settings menu indicating check update button 
+ 
+ 
+2. The application then checks for any recent updates and informs the user through 
+a prompt.
+
+
+===== PAGE 40 =====
+3. Click on “Install Update” to start the installation i.e. if any updates are found. 
+The application periodically checks for updates automatically once it detects an internet 
+connection. However, the user is always informed of any available updates prior to 
+installation. Anytime new updates are available, user will be prompted by a red button 
+indicating “Update Available” on the left side of the home screen of the application. By 
+clicking on this button, the download process is initialized.  
+5.3.2 Offline Update 
+This option requires the user to download and manually install the update file. To do this; 
+1. Open a web browser and enter claimit.nhia.gov.gh. Go to the Updates section of 
+the webpage to download the required update. Your update file will then be 
+saved to the default download directory of your browser. 
+2. Double-click on the update file to install. You will be notified once the installation 
+is complete.  
+ 
+Details of updates that have been run on the system with regards to Base Data, Service 
+tariffs, Medicine prices, Validation rules and Credentialing information can be found at 
+the Setup Detail section of the application. To open this section, click on the Provider 
+Info area at the left section of the application after login, as shown in Figure 5-1 below; 
+Figure 5-1: Home screen showing the Provider info section 
+ 
+ 
+The section as shown in Figure 5-2 shows information on credentialing and system 
+updates. For instance a description of “version 2016-03-01” under Service tariffs simply 
+Update files can also be accessed at any NHIS district office or CPC.
+
+
+===== PAGE 41 =====
+means the most current tariff version in the application are tariffs with an effective date 
+of March 2016 so on and so forth. Figure 5-2 is a further illustration of this section. 
+Figure 5-2: Provider info view showing updated details
+
+
+===== PAGE 42 =====
+6.0 REPORTING
+
+
+===== PAGE 43 =====
+6.1 General Information 
+This section describes the various reports and visualizations in the application. 
+6.2 Types of Report 
+The application comes with seven (7) report types. The reports are categorized under 
+seven (7) themes, i.e. Dashboard, Overview, Attendance, Medicines, Services, Submission 
+Advice and Excel Summary. 
+1. Dashboard: 
+a. Summary attendance. 
+b. Claims submission volume and cost. 
+c. Top 10 Diagnosis. 
+d. Top 10 Prescribed Medicines. 
+2. Overview: 
+a. Claims volume and cost by type of service for the current month. 
+b. Claims volume and cost, month on month for the current year. 
+3. Attendance: 
+a. Attendance by gender and age grouped by specialty. For both OPD and 
+IPD cases. 
+4. Medicines: 
+a. Top ten (10) most prescribed medicines. 
+b. Top ten (10) most utilized medicines by cost. 
+c. Most utilized therapeutic classes by volume 
+5. Services: 
+a. Top ten (10) most utilized GDRGs by volume. 
+b. Top ten (10) most utilized GDRGs by cost. 
+c. Top five (5) Major Diagnosis Categories (MDCs) by volume. 
+6. Submission Advice: 
+a. List of claims that require further attention, categorized into; 
+i. Potential duplicates 
+ii. Multiple ANC claims 
+iii. Attachment required claims 
+7. Excel Summary:
+
+
+===== PAGE 44 =====
+a. Excel Workbook containing sheets on various volume and cost summaries 
+on claims  
+6.3 Accessing reports 
+To access the desired report(s), the user simply clicks on the  menu and 
+selects the desired report by clicking on the select button. All reports are 
+defaulted to report on the current year. However, the period of reporting can be 
+changed by clicking on the filter  button to specify the range of choice. Figures 6.1 to 
+6.4 illustrates some of the reports generated by the application. 
+Figure 6-1: Dashboard 
+ 
+Figure 6-2: Overview of claims report
+
+
+===== PAGE 45 =====
+Figure 6-3: Attendance report 
+ 
+ 
+Figure 6-4: Report on service utilization

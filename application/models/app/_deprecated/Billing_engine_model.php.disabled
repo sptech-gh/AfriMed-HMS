@@ -1,0 +1,648 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/**
+ * Billing Engine Model - SINGLE SOURCE OF TRUTH
+ * All billing events from all departments MUST flow through this engine.
+ * 
+ * @author HMS Enterprise Architect
+ * @version 2.0
+ */
+class Billing_engine_model extends CI_Model
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('app/Enterprise_billing_model', 'eb_model');
+        $this->eb_model->ensure_schema();
+    }
+    
+    /**
+     * Main event handler - Routes billing events
+     */
+    public function handle_event($event_type, $event_data)
+    {
+        $user_id = $this->session->userdata('user_id') ?? 'SYSTEM';
+        $start_time = microtime(true);
+        
+        try {
+            $this->validate_event_data($event_data);
+            $result = $this->route_event($event_type, $event_data, $user_id);
+            $this->log_event($event_type, $event_data, $result, $start_time, $user_id);
+            return $result;
+        } catch (Exception $e) {
+            $this->log_event($event_type, $event_data, ['error' => $e->getMessage()], $start_time, $user_id, 'FAILED');
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+    
+    private function route_event($event_type, $data, $user_id)
+    {
+        switch ($event_type) {
+            case 'REGISTRATION_CREATED': return $this->handle_registration($data, $user_id);
+            case 'CONSULTATION_STARTED': return $this->handle_consultation($data, $user_id);
+            case 'LAB_ORDERED': return $this->handle_lab_order($data, $user_id);
+            case 'PRESCRIPTION_CREATED': return $this->handle_prescription($data, $user_id);
+            case 'RADIOLOGY_ORDERED': return $this->handle_radiology($data, $user_id);
+            case 'SONOGRAPHY_ORDERED': return $this->handle_sonography($data, $user_id);
+            case 'PROCEDURE_ORDERED': return $this->handle_procedure($data, $user_id);
+            case 'ADMISSION_CREATED': return $this->handle_admission($data, $user_id);
+            case 'ROOM_ASSIGNED': return $this->handle_room($data, $user_id);
+            case 'SURGERY_SCHEDULED': return $this->handle_surgery($data, $user_id);
+            case 'CONSUMABLE_USED': return $this->handle_consumable($data, $user_id);
+            case 'DISPENSE_COMPLETED': return $this->handle_dispense_reconciliation($data, $user_id);
+            case 'SERVICE_WAIVED': return $this->handle_waiver($data, $user_id);
+            case 'SERVICE_DEFERRED': return $this->handle_deferral($data, $user_id);
+            case 'DISCHARGE_INITIATED': return $this->lock_encounter($data, $user_id);
+            default: throw new Exception("Unknown event: {$event_type}");
+        }
+    }
+    
+    private function validate_event_data($data)
+    {
+        if (empty($data['visit_id']) || empty($data['patient_no'])) {
+            throw new Exception("Missing visit_id or patient_no");
+        }
+        if ($this->is_encounter_locked($data['visit_id'])) {
+            throw new Exception("Encounter locked - cannot add charges");
+        }
+    }
+    
+    /* ================================================================== */
+    /*  EVENT HANDLERS                                                     */
+    /* ================================================================== */
+    
+    private function handle_registration($data, $user_id)
+    {
+        if ($this->charge_exists('REGISTRATION', $data['visit_id'])) {
+            return ['success' => true, 'skipped' => true];
+        }
+        $fee = $this->get_fee('registration', $data['patient_no']);
+        if ($fee <= 0) return ['success' => true, 'skipped' => true];
+        
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'charge_type' => 'REGISTRATION',
+            'charge_code' => 'REG-001',
+            'charge_name' => 'Registration Fee',
+            'department' => 'FRONT_DESK',
+            'quantity' => 1,
+            'unit_price' => $fee,
+            'source_module' => 'REGISTRATION',
+            'source_ref_id' => $data['visit_id'],
+            'source_ref_table' => 'patient_details_iop',
+            'event' => 'REGISTRATION_CREATED',
+            'user_id' => $user_id,
+            'create_gate' => false
+        ]);
+    }
+    
+    private function handle_consultation($data, $user_id)
+    {
+        if ($this->charge_exists('CONSULTATION', $data['visit_id'])) {
+            return ['success' => true, 'skipped' => true];
+        }
+        $fee = $this->get_fee('consultation', $data['patient_no']);
+        if ($fee <= 0) return ['success' => true, 'skipped' => true];
+        
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'charge_type' => 'CONSULTATION',
+            'charge_code' => 'CONSULT-001',
+            'charge_name' => 'Consultation Fee',
+            'department' => 'OPD',
+            'quantity' => 1,
+            'unit_price' => $fee,
+            'source_module' => 'OPD',
+            'source_ref_id' => $data['visit_id'],
+            'source_ref_table' => 'patient_details_iop',
+            'event' => 'CONSULTATION_STARTED',
+            'user_id' => $user_id,
+            'create_gate' => true
+        ]);
+    }
+    
+    private function handle_lab_order($data, $user_id)
+    {
+        if (empty($data['tests'])) throw new Exception("No tests provided");
+        $results = [];
+        foreach ($data['tests'] as $test) {
+            $ref = $test['order_id'] ?? $test['lab_id'] ?? $data['visit_id'].'_'.$test['test_id'];
+            if ($this->charge_exists_by_source('LABORATORY', $ref)) {
+                $results[] = ['skipped' => true, 'test_id' => $test['test_id']];
+                continue;
+            }
+            $price = $this->get_service_price('lab', $test['test_id'], $data['patient_no']);
+            $results[] = $this->create_transaction([
+                'visit_id' => $data['visit_id'],
+                'patient_no' => $data['patient_no'],
+                'charge_type' => 'LAB',
+                'charge_code' => $test['test_code'] ?? 'LAB-'.$test['test_id'],
+                'charge_name' => $test['test_name'],
+                'department' => 'LABORATORY',
+                'quantity' => 1,
+                'unit_price' => $price,
+                'source_module' => 'LABORATORY',
+                'source_ref_id' => $ref,
+                'source_ref_table' => 'io_lab',
+                'event' => 'LAB_ORDERED',
+                'user_id' => $user_id,
+                'create_gate' => true,
+                'nhis_code' => $test['nhis_code'] ?? null
+            ]);
+        }
+        return ['success' => true, 'results' => $results];
+    }
+    
+    private function handle_prescription($data, $user_id)
+    {
+        if (empty($data['medications'])) throw new Exception("No medications provided");
+        $results = [];
+        foreach ($data['medications'] as $med) {
+            $ref = $med['prescription_id'] ?? $med['medication_id'] ?? $data['visit_id'].'_'.$med['drug_id'];
+            if ($this->charge_exists_by_source('PHARMACY', $ref)) {
+                $results[] = ['skipped' => true, 'drug_id' => $med['drug_id']];
+                continue;
+            }
+            $price = $this->get_service_price('pharmacy', $med['drug_id'], $data['patient_no']);
+            $results[] = $this->create_transaction([
+                'visit_id' => $data['visit_id'],
+                'patient_no' => $data['patient_no'],
+                'charge_type' => 'PHARMACY',
+                'charge_code' => $med['drug_code'] ?? 'DRUG-'.$med['drug_id'],
+                'charge_name' => $med['drug_name'],
+                'department' => 'PHARMACY',
+                'quantity' => $med['quantity'] ?? 1,
+                'unit_price' => $price,
+                'source_module' => 'PHARMACY',
+                'source_ref_id' => $ref,
+                'source_ref_table' => 'iop_medication',
+                'event' => 'PRESCRIPTION_CREATED',
+                'user_id' => $user_id,
+                'create_gate' => true
+            ]);
+        }
+        return ['success' => true, 'results' => $results];
+    }
+    
+    private function handle_radiology($data, $user_id)
+    {
+        $ref = $data['order_id'] ?? $data['visit_id'].'_'.$data['exam_id'];
+        if ($this->charge_exists_by_source('RADIOLOGY', $ref)) return ['success' => true, 'skipped' => true];
+        $price = $this->get_service_price('radiology', $data['exam_id'], $data['patient_no']);
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'charge_type' => 'RADIOLOGY',
+            'charge_code' => $data['exam_code'] ?? 'RAD-'.$data['exam_id'],
+            'charge_name' => $data['exam_name'],
+            'department' => 'RADIOLOGY',
+            'quantity' => 1,
+            'unit_price' => $price,
+            'source_module' => 'RADIOLOGY',
+            'source_ref_id' => $ref,
+            'source_ref_table' => 'io_radiology',
+            'event' => 'RADIOLOGY_ORDERED',
+            'user_id' => $user_id,
+            'create_gate' => true
+        ]);
+    }
+    
+    private function handle_sonography($data, $user_id)
+    {
+        $ref = $data['order_id'] ?? $data['visit_id'].'_'.$data['exam_id'];
+        if ($this->charge_exists_by_source('SONOGRAPHY', $ref)) return ['success' => true, 'skipped' => true];
+        $price = $this->get_service_price('sonography', $data['exam_id'], $data['patient_no']);
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'charge_type' => 'SONOGRAPHY',
+            'charge_code' => $data['exam_code'] ?? 'SONO-'.$data['exam_id'],
+            'charge_name' => $data['exam_name'],
+            'department' => 'SONOGRAPHY',
+            'quantity' => 1,
+            'unit_price' => $price,
+            'source_module' => 'SONOGRAPHY',
+            'source_ref_id' => $ref,
+            'source_ref_table' => 'io_sonography',
+            'event' => 'SONOGRAPHY_ORDERED',
+            'user_id' => $user_id,
+            'create_gate' => true
+        ]);
+    }
+    
+    private function handle_procedure($data, $user_id)
+    {
+        $ref = $data['order_id'] ?? $data['visit_id'].'_'.$data['proc_id'];
+        if ($this->charge_exists_by_source('PROCEDURE', $ref)) return ['success' => true, 'skipped' => true];
+        $price = $this->get_service_price('procedure', $data['proc_id'], $data['patient_no']);
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'charge_type' => 'PROCEDURE',
+            'charge_code' => $data['proc_code'] ?? 'PROC-'.$data['proc_id'],
+            'charge_name' => $data['proc_name'],
+            'department' => $data['department'] ?? 'PROCEDURES',
+            'quantity' => 1,
+            'unit_price' => $price,
+            'source_module' => 'PROCEDURES',
+            'source_ref_id' => $ref,
+            'source_ref_table' => 'io_procedures',
+            'event' => 'PROCEDURE_ORDERED',
+            'user_id' => $user_id,
+            'create_gate' => true
+        ]);
+    }
+    
+    private function handle_admission($data, $user_id)
+    {
+        $ref = $data['admission_id'] ?? $data['visit_id'];
+        if ($this->charge_exists_by_source('ADMISSION', $ref)) return ['success' => true, 'skipped' => true];
+        $price = $this->get_fee('admission', $data['patient_no']);
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'encounter_type' => 'IPD',
+            'charge_type' => 'ADMISSION',
+            'charge_code' => 'ADM-001',
+            'charge_name' => 'Admission Fee',
+            'department' => 'IPD',
+            'quantity' => 1,
+            'unit_price' => $price,
+            'source_module' => 'IPD',
+            'source_ref_id' => $ref,
+            'source_ref_table' => 'ipd_admissions',
+            'event' => 'ADMISSION_CREATED',
+            'user_id' => $user_id,
+            'create_gate' => true
+        ]);
+    }
+    
+    private function handle_room($data, $user_id)
+    {
+        $ref = $data['assignment_id'] ?? $data['visit_id'].'_ROOM_'.date('Ymd');
+        if ($this->charge_exists_by_source('ROOM', $ref)) return ['success' => true, 'skipped' => true];
+        $price = $this->get_service_price('room', $data['room_id'], $data['patient_no']);
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'encounter_type' => 'IPD',
+            'charge_type' => 'ROOM',
+            'charge_code' => 'ROOM-'.$data['room_id'],
+            'charge_name' => $data['room_name'] ?? 'Room Charge',
+            'department' => 'IPD',
+            'quantity' => 1,
+            'unit_price' => $price,
+            'source_module' => 'IPD',
+            'source_ref_id' => $ref,
+            'source_ref_table' => 'ipd_room_assignments',
+            'event' => 'ROOM_ASSIGNED',
+            'user_id' => $user_id,
+            'create_gate' => false
+        ]);
+    }
+    
+    private function handle_surgery($data, $user_id)
+    {
+        $ref = $data['surgery_id'] ?? $data['visit_id'].'_SURG_'.$data['procedure_id'];
+        if ($this->charge_exists_by_source('SURGERY', $ref)) return ['success' => true, 'skipped' => true];
+        $price = $this->get_service_price('surgery', $data['procedure_id'], $data['patient_no']);
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'charge_type' => 'SURGERY',
+            'charge_code' => 'SURG-'.$data['procedure_id'],
+            'charge_name' => $data['procedure_name'],
+            'department' => 'THEATRE',
+            'quantity' => 1,
+            'unit_price' => $price,
+            'source_module' => 'THEATRE',
+            'source_ref_id' => $ref,
+            'source_ref_table' => 'surgery_schedule',
+            'event' => 'SURGERY_SCHEDULED',
+            'user_id' => $user_id,
+            'create_gate' => true
+        ]);
+    }
+    
+    private function handle_consumable($data, $user_id)
+    {
+        $ref = $data['consumable_id'] ?? $data['visit_id'].'_CONS_'.time();
+        $price = $this->get_service_price('consumable', $data['item_id'], $data['patient_no']);
+        return $this->create_transaction([
+            'visit_id' => $data['visit_id'],
+            'patient_no' => $data['patient_no'],
+            'charge_type' => 'CONSUMABLE',
+            'charge_code' => 'CONS-'.$data['item_id'],
+            'charge_name' => $data['item_name'],
+            'department' => $data['department'] ?? 'THEATRE',
+            'quantity' => $data['quantity'] ?? 1,
+            'unit_price' => $price,
+            'source_module' => $data['source_module'] ?? 'THEATRE',
+            'source_ref_id' => $ref,
+            'source_ref_table' => 'consumable_usage',
+            'event' => 'CONSUMABLE_USED',
+            'user_id' => $user_id,
+            'create_gate' => false
+        ]);
+    }
+    
+    private function handle_dispense_reconciliation($data, $user_id)
+    {
+        $ref = $data['prescription_id'] ?? $data['medication_id'];
+        $this->db->where('source_module', 'PHARMACY');
+        $this->db->where('source_ref_id', $ref);
+        $this->db->where('is_active', 1);
+        $txn = $this->db->get('eb_transactions')->row();
+        if (!$txn) return ['success' => false, 'error' => 'Transaction not found'];
+        
+        $billed = $txn->quantity;
+        $dispensed = $data['dispensed_quantity'];
+        if ($billed == $dispensed) {
+            $this->complete_service($txn->txn_id, $user_id);
+            return ['success' => true, 'message' => 'Quantities match'];
+        }
+        
+        // Auto-adjust
+        $diff = $dispensed - $billed;
+        $this->create_adjustment($txn->txn_id, 'QUANTITY_CORRECTION', $diff * $txn->unit_price,
+            "Dispensed {$dispensed} vs billed {$billed}", $user_id, true);
+        $this->complete_service($txn->txn_id, $user_id);
+        return ['success' => true, 'adjusted' => true, 'difference' => $diff];
+    }
+    
+    private function handle_waiver($data, $user_id)
+    {
+        $this->db->where('txn_id', $data['txn_id']);
+        $this->db->where('is_active', 1);
+        $txn = $this->db->get('eb_transactions')->row();
+        if (!$txn) return ['success' => false, 'error' => 'Not found'];
+        if ($txn->billing_status === 'PAID') return ['success' => false, 'error' => 'Already paid'];
+        
+        $this->db->where('txn_id', $data['txn_id']);
+        $this->db->update('eb_transactions', [
+            'billing_status' => 'WAIVED',
+            'is_waived' => 1,
+            'waived_by' => $user_id,
+            'waived_at' => date('Y-m-d H:i:s'),
+            'waiver_reason' => $data['waiver_reason']
+        ]);
+        if ($txn->service_gate_id) $this->release_gate($txn->service_gate_id, 'WAIVER', $user_id);
+        return ['success' => true];
+    }
+    
+    private function handle_deferral($data, $user_id)
+    {
+        $this->db->where('txn_id', $data['txn_id']);
+        $this->db->where('is_active', 1);
+        $txn = $this->db->get('eb_transactions')->row();
+        if (!$txn) return ['success' => false, 'error' => 'Not found'];
+        
+        $this->db->where('txn_id', $data['txn_id']);
+        $this->db->update('eb_transactions', [
+            'billing_status' => 'DEFERRED',
+            'is_deferred' => 1,
+            'deferred_by' => $user_id,
+            'deferred_at' => date('Y-m-d H:i:s'),
+            'deferred_until' => $data['deferred_until'] ?? null,
+            'deferral_reason' => $data['deferral_reason']
+        ]);
+        if ($txn->service_gate_id) $this->release_gate($txn->service_gate_id, 'DEFERRAL', $user_id);
+        return ['success' => true];
+    }
+    
+    private function lock_encounter($data, $user_id)
+    {
+        $this->db->where('visit_id', $data['visit_id']);
+        $this->db->where('is_active', 1);
+        $this->db->update('eb_transactions', [
+            'encounter_locked' => 1,
+            'is_locked' => 1,
+            'locked_at' => date('Y-m-d H:i:s'),
+            'locked_reason' => 'DISCHARGE'
+        ]);
+        return ['success' => true];
+    }
+    
+    /* ================================================================== */
+    /*  CORE TRANSACTION CREATION                                          */
+    /* ================================================================== */
+    
+    public function create_transaction($data)
+    {
+        $this->db->trans_start();
+        try {
+            $payer = $this->get_payer_info($data['patient_no']);
+            $gross = $data['quantity'] * $data['unit_price'];
+            $coverage = $payer['coverage_percent'] ?? 0;
+            $covered = $gross * ($coverage / 100);
+            $patient_amt = $gross - $covered;
+            
+            $uuid = $this->generate_uuid();
+            $txn_data = [
+                'txn_uuid' => $uuid,
+                'visit_id' => $data['visit_id'],
+                'patient_no' => $data['patient_no'],
+                'encounter_type' => $data['encounter_type'] ?? 'OPD',
+                'charge_type' => $data['charge_type'],
+                'charge_code' => $data['charge_code'],
+                'charge_name' => $data['charge_name'],
+                'department' => $data['department'] ?? null,
+                'quantity' => $data['quantity'],
+                'unit_price' => $data['unit_price'],
+                'gross_amount' => $gross,
+                'net_amount' => $gross,
+                'payer_type' => $payer['payer_type'],
+                'coverage_percent' => $coverage,
+                'covered_amount' => $covered,
+                'patient_amount' => $patient_amt,
+                'amount_outstanding' => $patient_amt,
+                'nhis_code' => $data['nhis_code'] ?? null,
+                'insurance_id' => $payer['insurance_id'] ?? null,
+                'company_id' => $payer['company_id'] ?? null,
+                'source_module' => $data['source_module'],
+                'source_ref_id' => $data['source_ref_id'],
+                'source_ref_table' => $data['source_ref_table'],
+                'triggered_by_event' => $data['event'],
+                'triggered_by_user' => $data['user_id'],
+                'triggered_at' => date('Y-m-d H:i:s'),
+                'billing_status' => 'PENDING',
+                'service_status' => 'PENDING',
+                'created_at' => date('Y-m-d H:i:s'),
+                'created_by' => $data['user_id']
+            ];
+            
+            $this->db->insert('eb_transactions', $txn_data);
+            $txn_id = $this->db->insert_id();
+            
+            $gate_id = null;
+            if (!empty($data['create_gate'])) {
+                $gate_id = $this->create_gate($txn_id, $txn_data);
+                $this->db->where('txn_id', $txn_id);
+                $this->db->update('eb_transactions', ['service_gate_id' => $gate_id, 'service_gate_status' => 'BLOCKED']);
+            }
+            
+            $this->db->trans_complete();
+            if ($this->db->trans_status() === false) throw new Exception('DB Error');
+            
+            return ['success' => true, 'txn_id' => $txn_id, 'gate_id' => $gate_id, 'amount' => $patient_amt];
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+    
+    private function create_gate($txn_id, $txn_data)
+    {
+        $this->db->insert('eb_service_gates', [
+            'gate_uuid' => $this->generate_uuid(),
+            'txn_id' => $txn_id,
+            'visit_id' => $txn_data['visit_id'],
+            'patient_no' => $txn_data['patient_no'],
+            'service_type' => $txn_data['charge_type'],
+            'service_ref_id' => $txn_data['source_ref_id'],
+            'service_ref_table' => $txn_data['source_ref_table'],
+            'service_name' => $txn_data['charge_name'],
+            'department' => $txn_data['department'],
+            'amount_required' => $txn_data['patient_amount'],
+            'gate_status' => 'BLOCKED',
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->db->insert_id();
+    }
+    
+    public function release_gate($gate_id, $type, $user_id, $ref = null)
+    {
+        $this->db->where('gate_id', $gate_id);
+        $this->db->update('eb_service_gates', [
+            'gate_status' => 'RELEASED',
+            'released_at' => date('Y-m-d H:i:s'),
+            'released_by' => $user_id,
+            'release_type' => $type,
+            'release_reference' => $ref
+        ]);
+        $this->db->select('txn_id')->where('gate_id', $gate_id);
+        $gate = $this->db->get('eb_service_gates')->row();
+        if ($gate) {
+            $this->db->where('txn_id', $gate->txn_id);
+            $this->db->update('eb_transactions', [
+                'service_gate_status' => 'RELEASED',
+                'service_released_at' => date('Y-m-d H:i:s'),
+                'service_released_by' => $user_id
+            ]);
+        }
+    }
+    
+    public function complete_service($txn_id, $user_id)
+    {
+        $this->db->where('txn_id', $txn_id);
+        $this->db->update('eb_transactions', [
+            'service_status' => 'COMPLETED',
+            'service_completed_at' => date('Y-m-d H:i:s'),
+            'service_completed_by' => $user_id
+        ]);
+    }
+    
+    public function create_adjustment($txn_id, $type, $amount, $reason, $user_id, $auto = false)
+    {
+        $this->db->insert('eb_adjustments', [
+            'adj_uuid' => $this->generate_uuid(),
+            'adj_no' => 'ADJ'.date('Ymd').str_pad(mt_rand(1,9999),4,'0',STR_PAD_LEFT),
+            'original_txn_id' => $txn_id,
+            'adj_type' => $type,
+            'adj_amount' => $amount,
+            'adj_reason' => $reason,
+            'adj_status' => $auto ? 'APPROVED' : 'PENDING',
+            'requested_by' => $user_id,
+            'requested_at' => date('Y-m-d H:i:s'),
+            'approved_by' => $auto ? 'SYSTEM' : null,
+            'approved_at' => $auto ? date('Y-m-d H:i:s') : null,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->db->insert_id();
+    }
+    
+    /* ================================================================== */
+    /*  HELPER METHODS                                                     */
+    /* ================================================================== */
+    
+    public function charge_exists($type, $visit_id)
+    {
+        return $this->db->where('charge_type', $type)->where('visit_id', $visit_id)
+            ->where('is_active', 1)->where('billing_status !=', 'CANCELLED')
+            ->count_all_results('eb_transactions') > 0;
+    }
+    
+    public function charge_exists_by_source($module, $ref)
+    {
+        return $this->db->where('source_module', $module)->where('source_ref_id', $ref)
+            ->where('is_active', 1)->count_all_results('eb_transactions') > 0;
+    }
+    
+    public function is_encounter_locked($visit_id)
+    {
+        return $this->db->where('visit_id', $visit_id)->where('encounter_locked', 1)
+            ->count_all_results('eb_transactions') > 0;
+    }
+    
+    public function get_payer_info($patient_no)
+    {
+        $this->db->select('p.patient_type, p.Insurance_comp as insurance_id, ic.insurance_type, ic.billing_type');
+        $this->db->from('patient_personal_info p');
+        $this->db->join('insurance_comp ic', 'ic.insurance_name = p.Insurance_comp', 'left');
+        $this->db->where('p.patient_no', $patient_no);
+        $p = $this->db->get()->row();
+        if (!$p) return ['payer_type' => 'CASH', 'coverage_percent' => 0];
+        
+        $type = strtoupper($p->patient_type ?? 'CASH');
+        $billing_type = strtoupper($p->billing_type ?? 'CASH');
+        
+        if ($type === 'NHIS' || $billing_type === 'NHIS') return ['payer_type' => 'NHIS', 'coverage_percent' => 100];
+        if ($billing_type === 'PRIVATE_INSURANCE') return ['payer_type' => 'INSURANCE', 'insurance_id' => $p->insurance_id, 'coverage_percent' => 80];
+        if ($billing_type === 'CORPORATE') return ['payer_type' => 'COMPANY', 'company_id' => $p->insurance_id, 'coverage_percent' => 100];
+        return ['payer_type' => 'CASH', 'coverage_percent' => 0];
+    }
+    
+    public function get_fee($type, $patient_no)
+    {
+        // TODO: Implement proper fee lookup from config/price tables
+        $defaults = ['registration' => 20, 'consultation' => 30, 'admission' => 100];
+        return $defaults[$type] ?? 0;
+    }
+    
+    public function get_service_price($type, $id, $patient_no)
+    {
+        // TODO: Implement proper price lookup with payer-specific pricing
+        return 50; // Placeholder
+    }
+    
+    public function generate_uuid()
+    {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff),
+            mt_rand(0,0x0fff)|0x4000, mt_rand(0,0x3fff)|0x8000,
+            mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff));
+    }
+    
+    private function log_event($type, $data, $result, $start, $user, $status = 'SUCCESS')
+    {
+        $this->db->insert('eb_events_log', [
+            'event_uuid' => $this->generate_uuid(),
+            'event_type' => $type,
+            'event_source' => $data['source_module'] ?? 'UNKNOWN',
+            'event_action' => 'BILLING_EVENT',
+            'event_data' => json_encode($data),
+            'visit_id' => $data['visit_id'] ?? null,
+            'patient_no' => $data['patient_no'] ?? null,
+            'txn_id' => $result['txn_id'] ?? null,
+            'event_result' => $status,
+            'error_message' => $result['error'] ?? null,
+            'processing_time_ms' => (microtime(true) - $start) * 1000,
+            'triggered_by' => $user,
+            'triggered_at' => date('Y-m-d H:i:s'),
+            'ip_address' => $this->input->ip_address()
+        ]);
+    }
+}

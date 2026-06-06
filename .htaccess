@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /hms-master/
+
+  # Normalize %20 (URL-encoded space) to dash in URI path
+  # Loops until all %20 occurrences are replaced (handles multiple spaces)
+  # Example: /app/laboratory/results/1/OP%20000002 -> /app/laboratory/results/1/OP-000002
+  RewriteCond %{THE_REQUEST} ^[A-Z]+\s/hms-master/(.*)%20(.*)\sHTTP
+  RewriteRule ^ /hms-master/%1-%2 [R=301,L]
+
+  # Standard CodeIgniter rewrite — pass everything to index.php
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.php?/$1 [L,QSA]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+  ErrorDocument 404 /index.php
+</IfModule>

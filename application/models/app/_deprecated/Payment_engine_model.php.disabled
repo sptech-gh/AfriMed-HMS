@@ -1,0 +1,828 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/**
+ * Payment Engine Model - SINGLE SOURCE OF TRUTH for Payments
+ * All payments MUST flow through this engine.
+ * 
+ * @author HMS Enterprise Architect
+ * @version 2.0
+ */
+class Payment_engine_model extends CI_Model
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('app/Enterprise_billing_model', 'eb_model');
+        $this->eb_model->ensure_schema();
+    }
+    
+    /* ================================================================== */
+    /*  INVOICE MANAGEMENT                                                 */
+    /* ================================================================== */
+    
+    /**
+     * Generate invoice from pending transactions
+     */
+    public function generate_invoice($visit_id, $user_id = null)
+    {
+        $user_id = $user_id ?? $this->session->userdata('user_id') ?? 'SYSTEM';
+        
+        // Get pending transactions for this visit
+        $this->db->where('visit_id', $visit_id);
+        $this->db->where('is_active', 1);
+        $this->db->where('billing_status', 'PENDING');
+        $this->db->where('invoice_id IS NULL');
+        $transactions = $this->db->get('eb_transactions')->result();
+        
+        if (empty($transactions)) {
+            return ['success' => false, 'error' => 'No pending transactions to invoice'];
+        }
+        
+        // Get patient info
+        $patient_no = $transactions[0]->patient_no;
+        $encounter_type = $transactions[0]->encounter_type;
+        
+        // Calculate totals
+        $subtotal = 0;
+        $total_discount = 0;
+        $total_tax = 0;
+        $nhis_amount = 0;
+        $insurance_amount = 0;
+        $company_amount = 0;
+        $patient_amount = 0;
+        
+        foreach ($transactions as $txn) {
+            $subtotal += $txn->gross_amount;
+            $total_discount += $txn->discount_amount;
+            $total_tax += $txn->tax_amount;
+            
+            if ($txn->payer_type === 'NHIS') {
+                $nhis_amount += $txn->covered_amount;
+            } elseif ($txn->payer_type === 'INSURANCE') {
+                $insurance_amount += $txn->covered_amount;
+            } elseif ($txn->payer_type === 'COMPANY') {
+                $company_amount += $txn->covered_amount;
+            }
+            $patient_amount += $txn->patient_amount;
+        }
+        
+        $grand_total = $subtotal - $total_discount + $total_tax;
+        
+        $this->db->trans_start();
+        
+        // Generate invoice number
+        $invoice_no = $this->generate_invoice_no();
+        $invoice_uuid = $this->generate_uuid();
+        
+        // Create invoice
+        $invoice_data = [
+            'invoice_no' => $invoice_no,
+            'invoice_uuid' => $invoice_uuid,
+            'visit_id' => $visit_id,
+            'patient_no' => $patient_no,
+            'encounter_type' => $encounter_type,
+            'subtotal' => $subtotal,
+            'total_discount' => $total_discount,
+            'total_tax' => $total_tax,
+            'grand_total' => $grand_total,
+            'nhis_amount' => $nhis_amount,
+            'insurance_amount' => $insurance_amount,
+            'company_amount' => $company_amount,
+            'patient_amount' => $patient_amount,
+            'amount_outstanding' => $patient_amount,
+            'payment_status' => 'UNPAID',
+            'invoice_status' => 'DRAFT',
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $user_id
+        ];
+        
+        $this->db->insert('eb_invoices', $invoice_data);
+        $invoice_id = $this->db->insert_id();
+        
+        // Update transactions with invoice reference
+        $txn_ids = array_column($transactions, 'txn_id');
+        $this->db->where_in('txn_id', $txn_ids);
+        $this->db->update('eb_transactions', [
+            'invoice_id' => $invoice_id,
+            'invoice_no' => $invoice_no,
+            'billing_status' => 'INVOICED',
+            'updated_by' => $user_id,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        // Record ledger entry for invoice (Debit AR, Credit Revenue)
+        $this->record_invoice_ledger($invoice_id, $invoice_no, $visit_id, $patient_no, $grand_total, $user_id);
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === false) {
+            return ['success' => false, 'error' => 'Failed to create invoice'];
+        }
+        
+        return [
+            'success' => true,
+            'invoice_id' => $invoice_id,
+            'invoice_no' => $invoice_no,
+            'grand_total' => $grand_total,
+            'patient_amount' => $patient_amount,
+            'transaction_count' => count($transactions)
+        ];
+    }
+    
+    /**
+     * Finalize invoice (lock for payment)
+     */
+    public function finalize_invoice($invoice_id, $user_id = null)
+    {
+        $user_id = $user_id ?? $this->session->userdata('user_id');
+        
+        $this->db->where('invoice_id', $invoice_id);
+        $invoice = $this->db->get('eb_invoices')->row();
+        
+        if (!$invoice) {
+            return ['success' => false, 'error' => 'Invoice not found'];
+        }
+        
+        if ($invoice->invoice_status !== 'DRAFT') {
+            return ['success' => false, 'error' => 'Invoice already finalized'];
+        }
+        
+        $this->db->where('invoice_id', $invoice_id);
+        $this->db->update('eb_invoices', [
+            'invoice_status' => 'FINALIZED',
+            'finalized_at' => date('Y-m-d H:i:s'),
+            'finalized_by' => $user_id,
+            'is_locked' => 1,
+            'locked_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        // Lock associated transactions
+        $this->db->where('invoice_id', $invoice_id);
+        $this->db->update('eb_transactions', [
+            'is_locked' => 1,
+            'locked_at' => date('Y-m-d H:i:s'),
+            'locked_reason' => 'INVOICE_FINALIZED'
+        ]);
+        
+        return ['success' => true, 'message' => 'Invoice finalized'];
+    }
+    
+    /**
+     * Get invoice details with line items
+     */
+    public function get_invoice($invoice_id)
+    {
+        $this->db->where('invoice_id', $invoice_id);
+        $invoice = $this->db->get('eb_invoices')->row();
+        
+        if (!$invoice) return null;
+        
+        // Get line items
+        $this->db->where('invoice_id', $invoice_id);
+        $this->db->where('is_active', 1);
+        $this->db->order_by('charge_type', 'ASC');
+        $invoice->items = $this->db->get('eb_transactions')->result();
+        
+        // Get payments
+        $this->db->where('invoice_id', $invoice_id);
+        $this->db->where('payment_status', 'CONFIRMED');
+        $this->db->order_by('payment_date', 'ASC');
+        $invoice->payments = $this->db->get('eb_payments')->result();
+        
+        return $invoice;
+    }
+    
+    /**
+     * Get invoices for a patient
+     */
+    public function get_patient_invoices($patient_no, $status = null)
+    {
+        $this->db->where('patient_no', $patient_no);
+        if ($status) {
+            $this->db->where('payment_status', $status);
+        }
+        $this->db->order_by('created_at', 'DESC');
+        return $this->db->get('eb_invoices')->result();
+    }
+    
+    /**
+     * Get invoices for a visit
+     */
+    public function get_visit_invoices($visit_id)
+    {
+        $this->db->where('visit_id', $visit_id);
+        $this->db->order_by('created_at', 'DESC');
+        return $this->db->get('eb_invoices')->result();
+    }
+    
+    /* ================================================================== */
+    /*  PAYMENT PROCESSING                                                 */
+    /* ================================================================== */
+    
+    /**
+     * Process payment - SINGLE ENTRY POINT for all payments
+     */
+    public function process_payment($data)
+    {
+        $user_id = $data['cashier_id'] ?? $this->session->userdata('user_id');
+        
+        // Validate required fields
+        if (empty($data['invoice_id']) && empty($data['invoice_no'])) {
+            return ['success' => false, 'error' => 'Invoice reference required'];
+        }
+        if (empty($data['payment_amount']) || $data['payment_amount'] <= 0) {
+            return ['success' => false, 'error' => 'Invalid payment amount'];
+        }
+        if (empty($data['payment_method'])) {
+            return ['success' => false, 'error' => 'Payment method required'];
+        }
+        
+        // Get invoice
+        if (!empty($data['invoice_id'])) {
+            $this->db->where('invoice_id', $data['invoice_id']);
+        } else {
+            $this->db->where('invoice_no', $data['invoice_no']);
+        }
+        $invoice = $this->db->get('eb_invoices')->row();
+        
+        if (!$invoice) {
+            return ['success' => false, 'error' => 'Invoice not found'];
+        }
+        
+        if ($invoice->payment_status === 'PAID') {
+            return ['success' => false, 'error' => 'Invoice already fully paid'];
+        }
+        
+        // Validate payment amount
+        $balance = $invoice->patient_amount - $invoice->amount_paid;
+        if ($data['payment_amount'] > $balance + 0.01) { // Allow small rounding
+            return ['success' => false, 'error' => 'Payment exceeds balance. Balance: ' . number_format($balance, 2)];
+        }
+        
+        // Use database transaction with locking
+        $this->db->trans_start();
+        
+        // Lock invoice row to prevent race conditions
+        $this->db->query("SELECT * FROM eb_invoices WHERE invoice_id = ? FOR UPDATE", [$invoice->invoice_id]);
+        
+        // Re-fetch invoice after lock
+        $this->db->where('invoice_id', $invoice->invoice_id);
+        $invoice = $this->db->get('eb_invoices')->row();
+        $balance = $invoice->patient_amount - $invoice->amount_paid;
+        
+        // Double-check balance after lock
+        if ($data['payment_amount'] > $balance + 0.01) {
+            $this->db->trans_rollback();
+            return ['success' => false, 'error' => 'Payment exceeds balance (concurrent update detected)'];
+        }
+        
+        // Generate receipt number
+        $receipt_no = $this->generate_receipt_no();
+        $payment_uuid = $this->generate_uuid();
+        
+        // Create payment record
+        $payment_data = [
+            'receipt_no' => $receipt_no,
+            'payment_uuid' => $payment_uuid,
+            'invoice_id' => $invoice->invoice_id,
+            'invoice_no' => $invoice->invoice_no,
+            'visit_id' => $invoice->visit_id,
+            'patient_no' => $invoice->patient_no,
+            'payment_method' => strtoupper($data['payment_method']),
+            'payment_amount' => $data['payment_amount'],
+            'payment_reference' => $data['payment_reference'] ?? null,
+            'payer_type' => $data['payer_type'] ?? 'PATIENT',
+            'payer_reference' => $data['payer_reference'] ?? null,
+            'payment_status' => 'CONFIRMED',
+            'cashier_id' => $user_id,
+            'shift_id' => $data['shift_id'] ?? null,
+            'terminal_id' => $data['terminal_id'] ?? null,
+            'payment_date' => date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+        
+        $this->db->insert('eb_payments', $payment_data);
+        $payment_id = $this->db->insert_id();
+        
+        // Update invoice
+        $new_paid = $invoice->amount_paid + $data['payment_amount'];
+        $new_outstanding = $invoice->patient_amount - $new_paid;
+        $new_status = ($new_outstanding <= 0.01) ? 'PAID' : 'PARTIAL';
+        
+        $this->db->where('invoice_id', $invoice->invoice_id);
+        $this->db->update('eb_invoices', [
+            'amount_paid' => $new_paid,
+            'amount_outstanding' => max(0, $new_outstanding),
+            'payment_status' => $new_status,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        // Update transactions
+        $this->db->where('invoice_id', $invoice->invoice_id);
+        $this->db->where('is_active', 1);
+        $this->db->update('eb_transactions', [
+            'billing_status' => $new_status,
+            'amount_paid' => $new_paid,
+            'amount_outstanding' => max(0, $new_outstanding)
+        ]);
+        
+        // Release service gates if fully paid
+        if ($new_status === 'PAID') {
+            $this->release_invoice_gates($invoice->invoice_id, $user_id, $receipt_no);
+        }
+        
+        // Record ledger entry (Debit Cash, Credit AR)
+        $ledger_id = $this->record_payment_ledger(
+            $payment_id, $receipt_no, $invoice->visit_id, $invoice->patient_no,
+            $data['payment_amount'], $data['payment_method'], $user_id
+        );
+        
+        // Update payment with ledger reference
+        $this->db->where('payment_id', $payment_id);
+        $this->db->update('eb_payments', ['ledger_entry_id' => $ledger_id]);
+        
+        $this->db->trans_complete();
+        
+        if ($this->db->trans_status() === false) {
+            return ['success' => false, 'error' => 'Payment processing failed'];
+        }
+        
+        return [
+            'success' => true,
+            'payment_id' => $payment_id,
+            'receipt_no' => $receipt_no,
+            'amount_paid' => $data['payment_amount'],
+            'new_balance' => max(0, $new_outstanding),
+            'payment_status' => $new_status,
+            'invoice_no' => $invoice->invoice_no
+        ];
+    }
+    
+    /**
+     * Process split payment (multiple payment methods)
+     */
+    public function process_split_payment($invoice_id, $payments, $user_id = null)
+    {
+        $user_id = $user_id ?? $this->session->userdata('user_id');
+        $results = [];
+        
+        foreach ($payments as $payment) {
+            $payment['invoice_id'] = $invoice_id;
+            $payment['cashier_id'] = $user_id;
+            $result = $this->process_payment($payment);
+            $results[] = $result;
+            
+            if (!$result['success']) {
+                return ['success' => false, 'error' => $result['error'], 'partial_results' => $results];
+            }
+        }
+        
+        return ['success' => true, 'results' => $results];
+    }
+    
+    /**
+     * Release all service gates for an invoice
+     */
+    private function release_invoice_gates($invoice_id, $user_id, $receipt_no)
+    {
+        $this->db->select('service_gate_id');
+        $this->db->where('invoice_id', $invoice_id);
+        $this->db->where('service_gate_id IS NOT NULL');
+        $this->db->where('service_gate_status', 'BLOCKED');
+        $transactions = $this->db->get('eb_transactions')->result();
+        
+        foreach ($transactions as $txn) {
+            $this->db->where('gate_id', $txn->service_gate_id);
+            $this->db->update('eb_service_gates', [
+                'gate_status' => 'RELEASED',
+                'released_at' => date('Y-m-d H:i:s'),
+                'released_by' => $user_id,
+                'release_type' => 'PAYMENT',
+                'release_reference' => $receipt_no
+            ]);
+        }
+        
+        // Update transactions
+        $this->db->where('invoice_id', $invoice_id);
+        $this->db->where('service_gate_status', 'BLOCKED');
+        $this->db->update('eb_transactions', [
+            'service_gate_status' => 'RELEASED',
+            'service_released_at' => date('Y-m-d H:i:s'),
+            'service_released_by' => $user_id
+        ]);
+    }
+    
+    /* ================================================================== */
+    /*  REFUND PROCESSING                                                  */
+    /* ================================================================== */
+    
+    /**
+     * Request refund
+     */
+    public function request_refund($data)
+    {
+        $user_id = $this->session->userdata('user_id');
+        
+        // Get original payment
+        $this->db->where('payment_id', $data['payment_id']);
+        $payment = $this->db->get('eb_payments')->row();
+        
+        if (!$payment) {
+            return ['success' => false, 'error' => 'Payment not found'];
+        }
+        
+        if ($payment->payment_status !== 'CONFIRMED') {
+            return ['success' => false, 'error' => 'Payment not eligible for refund'];
+        }
+        
+        if ($data['refund_amount'] > $payment->payment_amount) {
+            return ['success' => false, 'error' => 'Refund amount exceeds payment amount'];
+        }
+        
+        $refund_no = 'REF' . date('Ymd') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        
+        $this->db->insert('eb_refunds', [
+            'refund_no' => $refund_no,
+            'refund_uuid' => $this->generate_uuid(),
+            'original_payment_id' => $payment->payment_id,
+            'original_receipt_no' => $payment->receipt_no,
+            'invoice_id' => $payment->invoice_id,
+            'invoice_no' => $payment->invoice_no,
+            'visit_id' => $payment->visit_id,
+            'patient_no' => $payment->patient_no,
+            'refund_amount' => $data['refund_amount'],
+            'refund_reason' => $data['refund_reason'],
+            'refund_method' => $data['refund_method'] ?? 'ORIGINAL_METHOD',
+            'requested_by' => $user_id,
+            'requested_at' => date('Y-m-d H:i:s'),
+            'approval_status' => 'PENDING',
+            'refund_status' => 'PENDING',
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        return [
+            'success' => true,
+            'refund_id' => $this->db->insert_id(),
+            'refund_no' => $refund_no,
+            'message' => 'Refund request submitted for approval'
+        ];
+    }
+    
+    /**
+     * Approve refund
+     */
+    public function approve_refund($refund_id, $user_id = null)
+    {
+        $user_id = $user_id ?? $this->session->userdata('user_id');
+        
+        $this->db->where('refund_id', $refund_id);
+        $refund = $this->db->get('eb_refunds')->row();
+        
+        if (!$refund || $refund->approval_status !== 'PENDING') {
+            return ['success' => false, 'error' => 'Invalid refund request'];
+        }
+        
+        $this->db->where('refund_id', $refund_id);
+        $this->db->update('eb_refunds', [
+            'approval_status' => 'APPROVED',
+            'approved_by' => $user_id,
+            'approved_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        return ['success' => true, 'message' => 'Refund approved'];
+    }
+    
+    /**
+     * Process approved refund
+     */
+    public function process_refund($refund_id, $user_id = null)
+    {
+        $user_id = $user_id ?? $this->session->userdata('user_id');
+        
+        $this->db->where('refund_id', $refund_id);
+        $refund = $this->db->get('eb_refunds')->row();
+        
+        if (!$refund || $refund->approval_status !== 'APPROVED') {
+            return ['success' => false, 'error' => 'Refund not approved'];
+        }
+        
+        if ($refund->refund_status !== 'PENDING') {
+            return ['success' => false, 'error' => 'Refund already processed'];
+        }
+        
+        $this->db->trans_start();
+        
+        // Update refund status
+        $this->db->where('refund_id', $refund_id);
+        $this->db->update('eb_refunds', [
+            'refund_status' => 'COMPLETED',
+            'processed_by' => $user_id,
+            'processed_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        // Update original payment
+        $this->db->where('payment_id', $refund->original_payment_id);
+        $this->db->update('eb_payments', [
+            'payment_status' => 'REFUNDED',
+            'reversed_at' => date('Y-m-d H:i:s'),
+            'reversed_by' => $user_id,
+            'reversal_reason' => $refund->refund_reason
+        ]);
+        
+        // Update invoice
+        $this->db->where('invoice_id', $refund->invoice_id);
+        $invoice = $this->db->get('eb_invoices')->row();
+        
+        $new_paid = $invoice->amount_paid - $refund->refund_amount;
+        $new_outstanding = $invoice->patient_amount - $new_paid;
+        $new_status = ($new_paid <= 0) ? 'UNPAID' : (($new_outstanding > 0) ? 'PARTIAL' : 'PAID');
+        
+        $this->db->where('invoice_id', $refund->invoice_id);
+        $this->db->update('eb_invoices', [
+            'amount_paid' => max(0, $new_paid),
+            'amount_outstanding' => $new_outstanding,
+            'payment_status' => $new_status
+        ]);
+        
+        // Record ledger entry (Debit AR, Credit Cash)
+        $this->record_refund_ledger($refund_id, $refund->refund_no, $refund->visit_id, 
+            $refund->patient_no, $refund->refund_amount, $user_id);
+        
+        $this->db->trans_complete();
+        
+        return ['success' => true, 'message' => 'Refund processed'];
+    }
+    
+    /* ================================================================== */
+    /*  LEDGER ENTRIES                                                     */
+    /* ================================================================== */
+    
+    /**
+     * Record invoice ledger entry (Debit AR, Credit Revenue)
+     */
+    private function record_invoice_ledger($invoice_id, $invoice_no, $visit_id, $patient_no, $amount, $user_id)
+    {
+        $posting_date = date('Y-m-d');
+        $fiscal_year = date('Y');
+        $fiscal_month = date('n');
+        
+        // Debit Accounts Receivable
+        $this->db->insert('eb_ledger', [
+            'ledger_uuid' => $this->generate_uuid(),
+            'transaction_type' => 'INVOICE',
+            'transaction_ref_id' => $invoice_id,
+            'transaction_ref_no' => $invoice_no,
+            'visit_id' => $visit_id,
+            'patient_no' => $patient_no,
+            'account_code' => '1100',
+            'account_name' => 'Accounts Receivable - Patients',
+            'account_type' => 'ASSET',
+            'debit_amount' => $amount,
+            'credit_amount' => 0,
+            'description' => "Invoice {$invoice_no} - Patient {$patient_no}",
+            'fiscal_year' => $fiscal_year,
+            'fiscal_month' => $fiscal_month,
+            'posting_date' => $posting_date,
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $user_id
+        ]);
+        
+        // Credit Revenue
+        $this->db->insert('eb_ledger', [
+            'ledger_uuid' => $this->generate_uuid(),
+            'transaction_type' => 'INVOICE',
+            'transaction_ref_id' => $invoice_id,
+            'transaction_ref_no' => $invoice_no,
+            'visit_id' => $visit_id,
+            'patient_no' => $patient_no,
+            'account_code' => '4800',
+            'account_name' => 'Revenue - Other',
+            'account_type' => 'REVENUE',
+            'debit_amount' => 0,
+            'credit_amount' => $amount,
+            'description' => "Invoice {$invoice_no} - Patient {$patient_no}",
+            'fiscal_year' => $fiscal_year,
+            'fiscal_month' => $fiscal_month,
+            'posting_date' => $posting_date,
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $user_id
+        ]);
+    }
+    
+    /**
+     * Record payment ledger entry (Debit Cash, Credit AR)
+     */
+    private function record_payment_ledger($payment_id, $receipt_no, $visit_id, $patient_no, $amount, $method, $user_id)
+    {
+        $posting_date = date('Y-m-d');
+        $fiscal_year = date('Y');
+        $fiscal_month = date('n');
+        
+        // Determine cash account based on payment method
+        $cash_accounts = [
+            'CASH' => ['1000', 'Cash'],
+            'MOMO' => ['1020', 'Mobile Money'],
+            'CARD' => ['1010', 'Bank'],
+            'BANK' => ['1010', 'Bank'],
+            'CHEQUE' => ['1010', 'Bank']
+        ];
+        $cash_account = $cash_accounts[$method] ?? ['1000', 'Cash'];
+        
+        // Debit Cash/Bank
+        $this->db->insert('eb_ledger', [
+            'ledger_uuid' => $this->generate_uuid(),
+            'transaction_type' => 'PAYMENT',
+            'transaction_ref_id' => $payment_id,
+            'transaction_ref_no' => $receipt_no,
+            'visit_id' => $visit_id,
+            'patient_no' => $patient_no,
+            'account_code' => $cash_account[0],
+            'account_name' => $cash_account[1],
+            'account_type' => 'ASSET',
+            'debit_amount' => $amount,
+            'credit_amount' => 0,
+            'description' => "Payment {$receipt_no} - {$method}",
+            'fiscal_year' => $fiscal_year,
+            'fiscal_month' => $fiscal_month,
+            'posting_date' => $posting_date,
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $user_id
+        ]);
+        
+        $ledger_id = $this->db->insert_id();
+        
+        // Credit Accounts Receivable
+        $this->db->insert('eb_ledger', [
+            'ledger_uuid' => $this->generate_uuid(),
+            'transaction_type' => 'PAYMENT',
+            'transaction_ref_id' => $payment_id,
+            'transaction_ref_no' => $receipt_no,
+            'visit_id' => $visit_id,
+            'patient_no' => $patient_no,
+            'account_code' => '1100',
+            'account_name' => 'Accounts Receivable - Patients',
+            'account_type' => 'ASSET',
+            'debit_amount' => 0,
+            'credit_amount' => $amount,
+            'description' => "Payment {$receipt_no} - {$method}",
+            'fiscal_year' => $fiscal_year,
+            'fiscal_month' => $fiscal_month,
+            'posting_date' => $posting_date,
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $user_id
+        ]);
+        
+        return $ledger_id;
+    }
+    
+    /**
+     * Record refund ledger entry (Debit AR, Credit Cash)
+     */
+    private function record_refund_ledger($refund_id, $refund_no, $visit_id, $patient_no, $amount, $user_id)
+    {
+        $posting_date = date('Y-m-d');
+        $fiscal_year = date('Y');
+        $fiscal_month = date('n');
+        
+        // Debit Accounts Receivable
+        $this->db->insert('eb_ledger', [
+            'ledger_uuid' => $this->generate_uuid(),
+            'transaction_type' => 'REFUND',
+            'transaction_ref_id' => $refund_id,
+            'transaction_ref_no' => $refund_no,
+            'visit_id' => $visit_id,
+            'patient_no' => $patient_no,
+            'account_code' => '1100',
+            'account_name' => 'Accounts Receivable - Patients',
+            'account_type' => 'ASSET',
+            'debit_amount' => $amount,
+            'credit_amount' => 0,
+            'description' => "Refund {$refund_no}",
+            'fiscal_year' => $fiscal_year,
+            'fiscal_month' => $fiscal_month,
+            'posting_date' => $posting_date,
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $user_id
+        ]);
+        
+        // Credit Cash
+        $this->db->insert('eb_ledger', [
+            'ledger_uuid' => $this->generate_uuid(),
+            'transaction_type' => 'REFUND',
+            'transaction_ref_id' => $refund_id,
+            'transaction_ref_no' => $refund_no,
+            'visit_id' => $visit_id,
+            'patient_no' => $patient_no,
+            'account_code' => '1000',
+            'account_name' => 'Cash',
+            'account_type' => 'ASSET',
+            'debit_amount' => 0,
+            'credit_amount' => $amount,
+            'description' => "Refund {$refund_no}",
+            'fiscal_year' => $fiscal_year,
+            'fiscal_month' => $fiscal_month,
+            'posting_date' => $posting_date,
+            'created_at' => date('Y-m-d H:i:s'),
+            'created_by' => $user_id
+        ]);
+    }
+    
+    /* ================================================================== */
+    /*  REPORTING METHODS                                                  */
+    /* ================================================================== */
+    
+    /**
+     * Get daily collection report
+     */
+    public function get_daily_collection($date = null, $cashier_id = null)
+    {
+        $date = $date ?? date('Y-m-d');
+        
+        $this->db->select('
+            payment_method,
+            COUNT(*) as count,
+            SUM(payment_amount) as total
+        ');
+        $this->db->where('DATE(payment_date)', $date);
+        $this->db->where('payment_status', 'CONFIRMED');
+        if ($cashier_id) {
+            $this->db->where('cashier_id', $cashier_id);
+        }
+        $this->db->group_by('payment_method');
+        
+        return $this->db->get('eb_payments')->result();
+    }
+    
+    /**
+     * Get outstanding balances
+     */
+    public function get_outstanding_balances($limit = 100)
+    {
+        $this->db->select('i.*, p.firstname, p.lastname, p.mobile_no as phone');
+        $this->db->from('eb_invoices i');
+        $this->db->join('patient_personal_info p', 'p.patient_no = i.patient_no', 'left');
+        $this->db->where('i.payment_status !=', 'PAID');
+        $this->db->where('i.amount_outstanding >', 0);
+        $this->db->order_by('i.amount_outstanding', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result();
+    }
+    
+    /**
+     * Get department revenue
+     */
+    public function get_department_revenue($date_from, $date_to)
+    {
+        $this->db->select('
+            department,
+            charge_type,
+            COUNT(*) as transaction_count,
+            SUM(net_amount) as gross_revenue,
+            SUM(covered_amount) as covered_revenue,
+            SUM(patient_amount) as patient_revenue,
+            SUM(amount_paid) as collected
+        ');
+        $this->db->where('DATE(created_at) >=', $date_from);
+        $this->db->where('DATE(created_at) <=', $date_to);
+        $this->db->where('is_active', 1);
+        $this->db->where('billing_status !=', 'CANCELLED');
+        $this->db->group_by('department, charge_type');
+        $this->db->order_by('department', 'ASC');
+        
+        return $this->db->get('eb_transactions')->result();
+    }
+    
+    /* ================================================================== */
+    /*  HELPER METHODS                                                     */
+    /* ================================================================== */
+    
+    private function generate_invoice_no()
+    {
+        $prefix = 'INV';
+        $date = date('Ymd');
+        $this->db->select_max('invoice_id');
+        $result = $this->db->get('eb_invoices')->row();
+        $next = ($result->invoice_id ?? 0) + 1;
+        return $prefix . $date . str_pad($next, 5, '0', STR_PAD_LEFT);
+    }
+    
+    private function generate_receipt_no()
+    {
+        $prefix = 'RCP';
+        $date = date('Ymd');
+        $this->db->select_max('payment_id');
+        $result = $this->db->get('eb_payments')->row();
+        $next = ($result->payment_id ?? 0) + 1;
+        return $prefix . $date . str_pad($next, 5, '0', STR_PAD_LEFT);
+    }
+    
+    private function generate_uuid()
+    {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+    }
+}

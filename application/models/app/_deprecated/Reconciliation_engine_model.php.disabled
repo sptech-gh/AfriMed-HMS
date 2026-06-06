@@ -1,0 +1,539 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/**
+ * Reconciliation Engine Model
+ * Auto-detects and flags billing discrepancies
+ * 
+ * @author HMS Enterprise Architect
+ * @version 2.0
+ */
+class Reconciliation_engine_model extends CI_Model
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('app/Enterprise_billing_model', 'eb_model');
+    }
+    
+    /**
+     * Run full reconciliation check
+     */
+    public function run_reconciliation()
+    {
+        $discrepancies = [];
+        
+        $discrepancies = array_merge($discrepancies, $this->check_unbilled_services());
+        $discrepancies = array_merge($discrepancies, $this->check_unpaid_invoices());
+        $discrepancies = array_merge($discrepancies, $this->check_duplicate_payments());
+        $discrepancies = array_merge($discrepancies, $this->check_overpayments());
+        $discrepancies = array_merge($discrepancies, $this->check_orphan_payments());
+        $discrepancies = array_merge($discrepancies, $this->check_ledger_balance());
+        $discrepancies = array_merge($discrepancies, $this->check_pharmacy_reconciliation());
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Check for services done but not billed
+     */
+    public function check_unbilled_services()
+    {
+        $discrepancies = [];
+        
+        // Lab tests without billing - only check if eb_transactions table exists
+        if ($this->db->table_exists('eb_transactions') && $this->db->table_exists('iop_laboratory')) {
+            $sql = "
+                SELECT l.io_lab_id as lab_id, l.iop_id as visit_id, pd.patient_no, 
+                       COALESCE(bp.particular_name, l.laboratory_text) as test_name, l.dDate
+                FROM iop_laboratory l
+                JOIN patient_details_iop pd ON pd.IO_ID = l.iop_id
+                LEFT JOIN bill_particular bp ON bp.particular_id = l.laboratory_id
+                LEFT JOIN eb_transactions t ON t.source_module = 'LABORATORY' 
+                    AND CAST(t.source_ref_id AS UNSIGNED) = l.io_lab_id AND t.is_active = 1
+                WHERE l.InActive = 0 
+                AND t.txn_id IS NULL
+                AND l.dDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                LIMIT 100
+            ";
+            $unbilled_labs = $this->db->query($sql)->result();
+            
+            foreach ($unbilled_labs as $lab) {
+                $discrepancies[] = [
+                    'type' => 'UNBILLED_SERVICE',
+                    'severity' => 'HIGH',
+                    'module' => 'LABORATORY',
+                    'reference_id' => $lab->lab_id,
+                    'visit_id' => $lab->visit_id,
+                    'patient_no' => $lab->patient_no,
+                    'description' => "Lab test '{$lab->test_name}' not billed",
+                    'date' => $lab->dDate
+                ];
+            }
+        }
+        
+        // Medications without billing - only check if eb_transactions table exists
+        if ($this->db->table_exists('eb_transactions') && $this->db->table_exists('iop_medication')) {
+            $sql = "
+                SELECT m.iop_med_id as medication_id, m.iop_id as visit_id, pd.patient_no, 
+                       COALESCE(d.drug_name, m.medicine_text) as drug_name, m.dDate
+                FROM iop_medication m
+                JOIN patient_details_iop pd ON pd.IO_ID = m.iop_id
+                LEFT JOIN medicine_drug_name d ON d.drug_id = m.medicine_id
+                LEFT JOIN eb_transactions t ON t.source_module = 'PHARMACY' 
+                    AND t.source_ref_id = m.iop_med_id AND t.is_active = 1
+                WHERE m.InActive = 0 
+                AND t.txn_id IS NULL
+                AND m.dDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                LIMIT 100
+            ";
+            $unbilled_meds = $this->db->query($sql)->result();
+            
+            foreach ($unbilled_meds as $med) {
+                $discrepancies[] = [
+                    'type' => 'UNBILLED_SERVICE',
+                    'severity' => 'HIGH',
+                    'module' => 'PHARMACY',
+                    'reference_id' => $med->medication_id,
+                    'visit_id' => $med->visit_id,
+                    'patient_no' => $med->patient_no,
+                    'description' => "Medication '{$med->drug_name}' not billed",
+                    'date' => $med->dDate
+                ];
+            }
+        }
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Check for old unpaid invoices
+     */
+    public function check_unpaid_invoices()
+    {
+        $discrepancies = [];
+        
+        if (!$this->db->table_exists('eb_invoices')) return $discrepancies;
+        
+        $this->db->select('invoice_id, invoice_no, patient_no, patient_amount, amount_outstanding, created_at');
+        $this->db->where('payment_status !=', 'PAID');
+        $this->db->where('amount_outstanding >', 0);
+        $this->db->where('created_at <', date('Y-m-d', strtotime('-7 days')));
+        $this->db->where('invoice_status !=', 'VOID');
+        $invoices = $this->db->get('eb_invoices')->result();
+        
+        foreach ($invoices as $inv) {
+            $days_old = floor((time() - strtotime($inv->created_at)) / 86400);
+            $severity = $days_old > 30 ? 'HIGH' : ($days_old > 14 ? 'MEDIUM' : 'LOW');
+            
+            $discrepancies[] = [
+                'type' => 'UNPAID_INVOICE',
+                'severity' => $severity,
+                'module' => 'BILLING',
+                'reference_id' => $inv->invoice_id,
+                'invoice_no' => $inv->invoice_no,
+                'patient_no' => $inv->patient_no,
+                'amount' => $inv->amount_outstanding,
+                'description' => "Invoice {$inv->invoice_no} unpaid for {$days_old} days. Balance: " . number_format($inv->amount_outstanding, 2),
+                'date' => $inv->created_at
+            ];
+        }
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Check for duplicate payments
+     */
+    public function check_duplicate_payments()
+    {
+        $discrepancies = [];
+        
+        if (!$this->db->table_exists('eb_payments')) return $discrepancies;
+        
+        $sql = "
+            SELECT invoice_id, invoice_no, patient_no, payment_amount, 
+                   COUNT(*) as payment_count, GROUP_CONCAT(receipt_no) as receipts
+            FROM eb_payments
+            WHERE payment_status = 'CONFIRMED'
+            AND DATE(payment_date) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY invoice_id, payment_amount
+            HAVING payment_count > 1
+        ";
+        $duplicates = $this->db->query($sql)->result();
+        
+        foreach ($duplicates as $dup) {
+            $discrepancies[] = [
+                'type' => 'DUPLICATE_PAYMENT',
+                'severity' => 'HIGH',
+                'module' => 'PAYMENTS',
+                'reference_id' => $dup->invoice_id,
+                'invoice_no' => $dup->invoice_no,
+                'patient_no' => $dup->patient_no,
+                'amount' => $dup->payment_amount,
+                'description' => "Possible duplicate payment of " . number_format($dup->payment_amount, 2) . 
+                                 " on invoice {$dup->invoice_no}. Receipts: {$dup->receipts}",
+                'receipts' => $dup->receipts
+            ];
+        }
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Check for overpayments
+     */
+    public function check_overpayments()
+    {
+        $discrepancies = [];
+        
+        if (!$this->db->table_exists('eb_invoices')) return $discrepancies;
+        
+        $sql = "
+            SELECT i.invoice_id, i.invoice_no, i.patient_no, i.patient_amount, i.amount_paid,
+                   (i.amount_paid - i.patient_amount) as overpayment
+            FROM eb_invoices i
+            WHERE i.amount_paid > i.patient_amount + 0.01
+            AND i.invoice_status != 'VOID'
+        ";
+        $overpaid = $this->db->query($sql)->result();
+        
+        foreach ($overpaid as $inv) {
+            $discrepancies[] = [
+                'type' => 'OVERPAYMENT',
+                'severity' => 'MEDIUM',
+                'module' => 'PAYMENTS',
+                'reference_id' => $inv->invoice_id,
+                'invoice_no' => $inv->invoice_no,
+                'patient_no' => $inv->patient_no,
+                'amount' => $inv->overpayment,
+                'description' => "Invoice {$inv->invoice_no} overpaid by " . number_format($inv->overpayment, 2) .
+                                 ". Refund may be required.",
+                'date' => null
+            ];
+        }
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Check for orphan payments (payments without valid invoice)
+     */
+    public function check_orphan_payments()
+    {
+        $discrepancies = [];
+        
+        if (!$this->db->table_exists('eb_payments') || !$this->db->table_exists('eb_invoices')) return $discrepancies;
+        
+        $sql = "
+            SELECT p.payment_id, p.receipt_no, p.invoice_no, p.patient_no, p.payment_amount, p.payment_date
+            FROM eb_payments p
+            LEFT JOIN eb_invoices i ON i.invoice_id = p.invoice_id
+            WHERE i.invoice_id IS NULL
+            AND p.payment_status = 'CONFIRMED'
+        ";
+        $orphans = $this->db->query($sql)->result();
+        
+        foreach ($orphans as $pay) {
+            $discrepancies[] = [
+                'type' => 'ORPHAN_PAYMENT',
+                'severity' => 'HIGH',
+                'module' => 'PAYMENTS',
+                'reference_id' => $pay->payment_id,
+                'receipt_no' => $pay->receipt_no,
+                'patient_no' => $pay->patient_no,
+                'amount' => $pay->payment_amount,
+                'description' => "Payment {$pay->receipt_no} has no valid invoice reference",
+                'date' => $pay->payment_date
+            ];
+        }
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Check ledger balance (debits should equal credits)
+     */
+    public function check_ledger_balance()
+    {
+        $discrepancies = [];
+        
+        if (!$this->db->table_exists('eb_ledger')) return $discrepancies;
+        
+        $sql = "
+            SELECT 
+                SUM(debit_amount) as total_debits,
+                SUM(credit_amount) as total_credits,
+                SUM(debit_amount) - SUM(credit_amount) as imbalance
+            FROM eb_ledger
+            WHERE is_reversed = 0
+        ";
+        $balance = $this->db->query($sql)->row();
+        
+        if ($balance && abs($balance->imbalance) > 0.01) {
+            $discrepancies[] = [
+                'type' => 'LEDGER_IMBALANCE',
+                'severity' => 'CRITICAL',
+                'module' => 'ACCOUNTING',
+                'reference_id' => null,
+                'amount' => $balance->imbalance,
+                'description' => "Ledger imbalance detected. Debits: " . number_format($balance->total_debits, 2) .
+                                 ", Credits: " . number_format($balance->total_credits, 2) .
+                                 ", Difference: " . number_format($balance->imbalance, 2),
+                'date' => date('Y-m-d H:i:s')
+            ];
+        }
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Check pharmacy dispensing vs billing reconciliation
+     */
+    public function check_pharmacy_reconciliation()
+    {
+        $discrepancies = [];
+        
+        if (!$this->db->table_exists('eb_transactions')) return $discrepancies;
+        
+        // This would check if dispensed quantities match billed quantities
+        // Implementation depends on pharmacy dispensing table structure
+        
+        $sql = "
+            SELECT t.txn_id, t.source_ref_id, t.charge_name, t.quantity as billed_qty,
+                   t.visit_id, t.patient_no
+            FROM eb_transactions t
+            WHERE t.charge_type = 'PHARMACY'
+            AND t.service_status = 'COMPLETED'
+            AND t.is_active = 1
+            AND DATE(t.created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        ";
+        
+        // Note: Full implementation would join with dispensing records
+        // and compare quantities
+        
+        return $discrepancies;
+    }
+    
+    /**
+     * Get reconciliation summary
+     */
+    public function get_summary()
+    {
+        $discrepancies = $this->run_reconciliation();
+        
+        $summary = [
+            'total' => count($discrepancies),
+            'critical' => 0,
+            'high' => 0,
+            'medium' => 0,
+            'low' => 0,
+            'by_type' => [],
+            'by_module' => []
+        ];
+        
+        foreach ($discrepancies as $d) {
+            $severity = strtolower($d['severity']);
+            if (isset($summary[$severity])) {
+                $summary[$severity]++;
+            }
+            
+            $type = $d['type'];
+            if (!isset($summary['by_type'][$type])) {
+                $summary['by_type'][$type] = 0;
+            }
+            $summary['by_type'][$type]++;
+            
+            $module = $d['module'];
+            if (!isset($summary['by_module'][$module])) {
+                $summary['by_module'][$module] = 0;
+            }
+            $summary['by_module'][$module]++;
+        }
+        
+        return $summary;
+    }
+    
+    /**
+     * Auto-fix certain discrepancies
+     */
+    public function auto_fix($type, $reference_id, $user_id = null)
+    {
+        $user_id = $user_id ?? $this->session->userdata('user_id') ?? 'SYSTEM';
+        
+        switch ($type) {
+            case 'UNBILLED_SERVICE':
+                return $this->fix_unbilled_service($reference_id, $user_id);
+            case 'OVERPAYMENT':
+                return $this->fix_overpayment($reference_id, $user_id);
+            default:
+                return ['success' => false, 'error' => 'Auto-fix not available for this type'];
+        }
+    }
+    
+    private function fix_unbilled_service($reference_id, $user_id)
+    {
+        // Mark the lab test as billed through legacy system by creating a placeholder transaction
+        // First, get the lab test details
+        $sql = "
+            SELECT l.io_lab_id, l.iop_id, l.laboratory_id, l.laboratory_text, l.dDate,
+                   pd.patient_no, pd.IO_ID as visit_id,
+                   COALESCE(bp.particular_name, l.laboratory_text) as test_name,
+                   COALESCE(bp.charge_amount, 0) as price
+            FROM iop_laboratory l
+            JOIN patient_details_iop pd ON pd.IO_ID = l.iop_id
+            LEFT JOIN bill_particular bp ON bp.particular_id = l.laboratory_id
+            WHERE l.io_lab_id = ?
+        ";
+        $lab = $this->db->query($sql, [$reference_id])->row();
+        
+        if (!$lab) {
+            return ['success' => false, 'error' => 'Lab test not found'];
+        }
+        
+        // Check if eb_transactions table exists
+        if (!$this->db->table_exists('eb_transactions')) {
+            return ['success' => false, 'error' => 'Enterprise billing not initialized'];
+        }
+        
+        // Generate UUID
+        $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+        
+        $price = floatval($lab->price);
+        
+        // Create a placeholder transaction marking this as "LEGACY_BILLED"
+        $txn_data = [
+            'txn_uuid' => $uuid,
+            'visit_id' => $lab->visit_id,
+            'patient_no' => $lab->patient_no,
+            'encounter_type' => 'OPD',
+            'charge_type' => 'LABORATORY',
+            'charge_code' => 'LAB-' . $lab->laboratory_id,
+            'charge_name' => $lab->test_name,
+            'department' => 'LABORATORY',
+            'source_module' => 'LABORATORY',
+            'source_ref_id' => $lab->io_lab_id,
+            'source_ref_table' => 'iop_laboratory',
+            'triggered_by_event' => 'LEGACY_MIGRATION',
+            'triggered_by_user' => $user_id,
+            'triggered_at' => date('Y-m-d H:i:s'),
+            'quantity' => 1,
+            'unit_price' => $price,
+            'gross_amount' => $price,
+            'net_amount' => $price,
+            'discount_amount' => 0,
+            'covered_amount' => 0,
+            'patient_amount' => $price,
+            'payer_type' => 'CASH',
+            'billing_status' => 'LEGACY_BILLED',
+            'amount_paid' => $price,
+            'amount_outstanding' => 0,
+            'is_active' => 1,
+            'created_at' => $lab->dDate,
+            'created_by' => $user_id
+        ];
+        
+        try {
+            $this->db->insert('eb_transactions', $txn_data);
+            
+            if ($this->db->affected_rows() > 0) {
+                return ['success' => true, 'message' => 'Lab test marked as legacy billed'];
+            }
+            
+            // Get the actual error
+            $error = $this->db->error();
+            return ['success' => false, 'error' => 'Insert failed: ' . ($error['message'] ?? 'Unknown error')];
+        } catch (Exception $e) {
+            return ['success' => false, 'error' => 'Exception: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Mark all legacy unbilled services as billed (bulk fix for clean testing)
+     */
+    public function fix_all_legacy_unbilled($user_id = null)
+    {
+        $user_id = $user_id ?? $this->session->userdata('user_id') ?? 'SYSTEM';
+        $fixed = 0;
+        $errors = [];
+        
+        // Check if eb_transactions table exists first
+        if (!$this->db->table_exists('eb_transactions')) {
+            return [
+                'success' => false,
+                'error' => 'eb_transactions table does not exist. Run Enterprise Billing setup first.'
+            ];
+        }
+        
+        // Get all unbilled lab tests
+        $discrepancies = $this->check_unbilled_services();
+        
+        if (empty($discrepancies)) {
+            return [
+                'success' => true,
+                'fixed' => 0,
+                'errors' => [],
+                'message' => 'No unbilled services found'
+            ];
+        }
+        
+        foreach ($discrepancies as $d) {
+            if ($d['type'] === 'UNBILLED_SERVICE' && $d['module'] === 'LABORATORY') {
+                $result = $this->fix_unbilled_service($d['reference_id'], $user_id);
+                if ($result['success']) {
+                    $fixed++;
+                } else {
+                    $errors[] = "Lab {$d['reference_id']}: {$result['error']}";
+                }
+            }
+        }
+        
+        return [
+            'success' => true,
+            'fixed' => $fixed,
+            'errors' => $errors,
+            'message' => "Fixed {$fixed} unbilled services"
+        ];
+    }
+    
+    private function fix_overpayment($invoice_id, $user_id)
+    {
+        // Create refund request for overpayment
+        $this->db->where('invoice_id', $invoice_id);
+        $invoice = $this->db->get('eb_invoices')->row();
+        
+        if (!$invoice) {
+            return ['success' => false, 'error' => 'Invoice not found'];
+        }
+        
+        $overpayment = $invoice->amount_paid - $invoice->patient_amount;
+        if ($overpayment <= 0) {
+            return ['success' => false, 'error' => 'No overpayment found'];
+        }
+        
+        // Get last payment
+        $this->db->where('invoice_id', $invoice_id);
+        $this->db->where('payment_status', 'CONFIRMED');
+        $this->db->order_by('payment_date', 'DESC');
+        $this->db->limit(1);
+        $payment = $this->db->get('eb_payments')->row();
+        
+        if (!$payment) {
+            return ['success' => false, 'error' => 'No payment found'];
+        }
+        
+        // Create refund request
+        $this->load->model('app/Payment_engine_model', 'payment_engine');
+        return $this->payment_engine->request_refund([
+            'payment_id' => $payment->payment_id,
+            'refund_amount' => $overpayment,
+            'refund_reason' => 'Auto-generated: Overpayment correction'
+        ]);
+    }
+}

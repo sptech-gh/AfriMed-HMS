@@ -1,0 +1,629 @@
+
+
+===== PAGE 8 =====
+This section explains the basic requirements of the software for successful installation and 
+operation. 
+2.1 System Requirements 
+The following are the minimum requirements for optimum performance of the 
+application: 
+Table 2-1: Minimum system requirements 
+ 
+ 
+ 
+ 
+Note: System requirements are subject to the volume of claims being processed by the 
+facility. Hence, higher memory allocation, for instance, is recommended for computers 
+processing greater claims volumes. 
+2.2 Installation 
+This user manual assumes you already have a copy of the setup file for the software. 
+However, you can always visit the NHIS CLAIM-it website (claimit.nhia.gov.gh) to 
+download a new copy of the setup file.  
+To install the software, double-click on the setup file and follow through the various 
+prompts to complete your installation. In addition to the software (CLAIM-it), the setup 
+file contains all the pre-requisite applications necessary for the smooth operations of the 
+application. Hence, all pre-requisites will be installed before the software is configured 
+on your computer. The following illustrates the installation process. 
+Operating System Windows 7 or later 
+Processor  Dual core, 2.0GHz 
+Memory 2GB 
+Storage Space 120 GB
+
+
+===== PAGE 9 =====
+If the installation is for a single independent computer, use the default setting, else 
+select the option that applies to your setting. Below are brief explanations to the various 
+installation types.  
+a. Install Standalone: This installs and configures the CLAIM-it installation as an 
+independent environment where the database resides locally on the computer. 
+b. Install Minimal Standalone: This is much similar to the standalone installation. 
+However, this is more suited if the computer has a lower memory size of about 
+1GB or a few MB short of the minimal requirements. 
+c. Install Shared Server: This option configures the computer to serve other CLAIM-
+it users (Client user) that are connected to it. Hence, it hosts both the server and 
+the database. This configuration is suitable for environments with a Local Area 
+Network (LAN). 
+d. Install Client Only: This option installs only the client version of the application. 
+This option assumes that the client will be connecting to a CLAIM-it server via a 
+network address. A local database is therefore not installed on this computer. 
+Note that for the client to work, the server has to be up and running. 
+e. Install HMS Client Server: This configures the computer just like a standalone 
+installation. The only difference here is that the software is configured to receive 
+and process claims XML files generated from a Health Management System 
+(HMS) that is compliant with the CLAIM-it standards. Hence, direct claims
+
+
+===== PAGE 10 =====
+addition/generation cannot be performed via the application. All corrections will 
+have to be done from the primary source of the data. i.e. HMS.   
+Click on install to start the installation process 
+ 
+Installation in progress 
+If there is an already existing installation, the application determines if the installed 
+version is higher than that being installed. If it is older, you will be prompted to uninstall 
+the current version as shown in the figure below. 
+ 
+ 
+2.3 Starting Claim-IT 
+After installation double-click on the CLAIM-it shortcut icon located on the desktop of 
+your computer (Figure 2-1). This will initialize the application and popup a login screen. 
+The default username and password are admin and admin respectively. Illustrated in 
+Figure 2-2.
+
+
+===== PAGE 11 =====
+Figure 2-1: CLAIM-it shortcut icon 
+ 
+Figure 2-2 :  CLAIM-it Login screen 
+ 
+A successful login will open the home screen for the application as shown in Figure 2-3. 
+Figure 2-3 : CLAIM-it Home screen
+
+
+===== PAGE 12 =====
+2.4 Loading Credentialing File 
+The “Credentialing file is not installed. Install your facility’s credentialing file to activate 
+the appli cation” message on the left top corner of the home screen simply means, no 
+credentialing details were detected by the application. The accreditation file contains the 
+credentialing details of a health facility. The credentialing file can be obtained from NHIA. 
+ 
+To load the credentialing file, follow the following steps; 
+1. Double-click on the credentialing file to display the credentialing that will be 
+installed. 
+ 
+2. Confirm that the credentialing details displayed are accurate. If you believe any 
+information is  inaccurate, click on “Cancel” and contact NHIA for clarifications 
+and/or corrections. In the case of a correction, a new Credentialing File will be sent 
+to you. 
+3. However, if all the details are correct, click on “Install Credentialing’s” to install. 
+ 
+4. Finally, provide your CLAIM -it Login details when prompted, and click on “Login” 
+to authorize the installation. 
+ 
+ 
+ 
+ 
+The application will not function without a valid credential file
+
+
+===== PAGE 13 =====
+Alternatively,  
+1. Login to the application 
+ 
+2. Click on “Pick credentialing file” and browse to where the file is located. 
+3. Click on “Upload” to start system configuration. 
+ 
+4. Click on “OK” to restart the application. 
+ 
+ 
+ 
+ 
+ 
+Updates can only be run by authorized users. See section 3.6 of manual
+
+
+===== PAGE 14 =====
+2.5 Changing Username and Password 
+The default password is only intended to be used for first time login. For security 
+reasons, the application will require the first time user to change the default password to 
+a more personal and secured one. Best practices for password setting are recommended 
+during password setting. 
+To change the password, enter the current password followed by the new password. 
+Figure 2-4 : CLAIM-it change password screen
+
+
+===== PAGE 15 =====
+3.0 ADDING USERS
+
+
+===== PAGE 16 =====
+3.1 General Overview 
+This section provides information on the processes involved in the creation of users as 
+well as the various user roles and privileges available within the application. 
+3.2 User Roles 
+There are four (4) major user types that allows users to perform one or more actions 
+within the application. Depending on the role of the user, certain features will not be 
+available for use.  The user types with their corresponding roles are showed in Table 3-1. 
+Table 3-1: Illustration of user types and their roles 
+  VIEW ADD EDIT DELETE EXPORT IMPORT RUN SUBMIT MANAGE 
+SUPERVISOR          
+CLAIMS Yes - - - - - - - - 
+REPORTS Yes - - - - - - - - 
+UPDATES - - - - - - Yes - - 
+USERS - - - - - - - - - 
+ADMIN          
+CLAIMS Yes Yes Yes Yes Yes Yes - - - 
+REPORTS Yes - - - - - - - - 
+UPDATES - - - - - - Yes - - 
+USERS - - - - - - - - Yes 
+ENTRYADMIN          
+CLAIMS Yes Yes Yes Yes Yes Yes - - - 
+REPORTS Yes - - - - - - - - 
+UPDATES - - - - - - Yes - - 
+USERS - - - - - - - - Yes 
+ENTRYCLERK          
+CLAIMS Yes Yes Yes - Yes Yes - - - 
+REPORTS - - - - - - - - - 
+UPDATES - - - - - - - - - 
+USERS - - - - - - - - - 
+INSURANCE 
+OFFICER          
+CLAIMS  Yes Yes Yes Yes Yes Yes - Yes - 
+REPORTS Yes - - - - - - - - 
+UPDATES - - - - - - Yes - - 
+USERS - - - - - - - - Yes
+
+
+===== PAGE 17 =====
+By way of further explanation to the roles, 
+1.  The Supervisor role  is allowed to view claims, submit claims, v iew reports, run 
+system updates and manage users. This role is not allowed to add or edit claims. 
+2. The Admin role is allowed to perform all activities within the application excluding 
+claims submission. The Entry Admin role also has the same privileges.  
+3.  The Entry Clerk role is allowed to view claims, add and edit claims as well as export 
+and import claims. The entry clerk cannot delete claims, neither can it view reports, 
+run updates or manage users. 
+4. The Insurance Officer role  is the highest role in the ap plication. Hence every 
+feature of the application can be assessed by the Insurance Officer role. 
+3.3 Creating Users 
+To create a user, follow the steps below; 
+1. Log into the application with an admin account. i.e. the default admin account or 
+an account that has the privileges of adding users. (refer to Table 3-1). 
+2. Click on the settings menu  located at the top right corner of the 
+homepage.(Figure 3-1) 
+Figure 3-1: Options menu
+
+
+===== PAGE 24 =====
+4.1 General Overview 
+This section provides a detailed description of all the features of the application. 
+4.2 General Outlook 
+The application has four (4) major views or menus namely Claims, New Claim, Reports 
+and Settings.  Figure 4-1 shows a navigation flow through the various views of the 
+application. 
+Figure 4-1: Navigation flow through the various vies of the application 
+ 
+Additionally, the left panel of the home screen also provides information on the facility 
+name, facility type, prescribing level of the facility, the login status of the user, entry and 
+performance statistics. 
+4.2.1 Home Screen and Navigation of views 
+Figure 4-2 illustrates the home screen also representing the “Claims” menu of the 
+application.  
+ 
+ 
+ 
+Views
+CLAIMS
+Claims by year
+List of claims
+Merge Claims
+NEW CLAIM
+Entry form
+REPORTS
+Reports
+SETTINGS
+Manage Users
+Check for update
+Backup Data
+Server Options
+Reload 
+Application
+
+
+===== PAGE 25 =====
+Figure 4-2: Home screen of the application with no claims data 
+ 
+As observed in the figure above, claims are visualized by year and month. By default the 
+application loads claims data for the current year. The year under view can be seen at the 
+top corner, leftward of the home screen. To change the year of view, click on “Change 
+Year” and select the year of interest (Figure 4-3). However, it must be noted that the 
+drop down list only contains the list of years for which claims have been entered. 
+Figure 4-3 : Drop down menu for changing year in view 
+ 
+ Months with no claims data are greyed out as seen in Figure 3-2. However, months with 
+claims data have a coloured background with a summary of the volumes per type of 
+service of data captured for that month (Figure 4-4).
+
+
+===== PAGE 26 =====
+Figure 4-4:  Home screen of the application with claims data 
+ 
+To view the list of claims for any month, click on the month of interest. Claims are 
+grouped according to the various types of services. Figure 4-5 shows the list of claims for 
+the month of June 2020.  
+Figure 4-5: List of claims for a month 
+ 
+As can be observed in Figure 4-5, each service type has a tab which in turn provides 
+information on the total volume of claims for that service type. The “ALL” tab contains 
+all claims that have been entered for that month.  
+Under each major tab is a further grouping of data based on the specialty attended.
+
+
+===== PAGE 27 =====
+Each data row represents an entered claim specifying the date of the claim, member 
+number, name of member, date claim was generated, type of service and the cost of the 
+claim. The two (2) icons (indicated with the arrow in figure 4-5) are used to either 
+preview or delete a claim. The icon on the left, the delete button, performs the action of 
+deleting a claim while the icon on the right, the preview button, performs the action of 
+opening a claim in the preview mode. A detailed description of the edit and delete 
+features can be found in the section 4.3. 
+To preview a claim, click on the preview button  next to the claim of interest. This will 
+show the claim in its traditional view (Figure 4-6). Printing of claims can be done in this 
+view, if necessary. 
+Figure 4-6: Claim Preview 
+   
+Clicking on the three dots at the top right corner as shown in the arrow in Figure 4-6 
+shows two functionalities, the “Entry Info” and “Edit Claim” button. By clicking on Entry
+
+
+===== PAGE 28 =====
+Info, details of all users who have interacted with the claim in view are shown as depicted 
+in the figure below.  
+ 
+The Edit Claim button (Figure 4-5) also allows users to bring up the claim in the edit 
+mode. 
+4.3 Generating Claims 
+One of the most important features of the application is to help with claims generation. 
+This require users to generate claims that resulted from a valid attendance, using an 
+electronic claims entry form. Figure 4-7 shows a general outlook of the claims entry form. 
+Figure 4-7: Claims entry form
+
+
+===== PAGE 29 =====
+To enter claims, click on   button found on the side bar menu of the home 
+screen. This should pop up a blank claims entry form similar in view to what is displayed 
+above. 
+Entering claims requires the user to apply the NHIS claims generation guidelines with 
+respect to providing required data as well as satisfying all other claims entry protocols. 
+Reference should be made to the NHIS tariff operational manual for further information 
+on claims generation guidelines and policy. The entry form has seven major sections; 
+1. Patient Details section: This section captures all patient centred details. The entry 
+fields in this section are; 
+a. Patient name (Surname and other names) 
+b. Member number 
+c. Date of birth  
+d. Folder number  
+e. Claims Check Code (CCC)
+
+
+===== PAGE 30 =====
+f. Card serial number 
+Figure 4-8: Patient detail section 
+ 
+Users are also able to pre-populate patient member details by using the search button 
+next to the Member no field (shown by the green arrow) upon entering the member 
+number. Member detail pre-population is also possible using the folder number of the 
+patient. Please note, however, that this feature is only functional if claims have ever been 
+captured for that member. This is illustrated in the diagram below. 
+ 
+The diagram above is an illustration of member no. 11111111 having past claim entries with 
+two different folder numbers. In this case the claim officer will have to choose the 
+preferred record to use. 
+Note: Once the application detects that the age of the patient is within a three (3) month 
+period, it prompts the user to confirm if the NHIS member number being used is that of the 
+child or not. The age is always computed against the first date of service provision. This is 
+illustrated in Figure 4-9.
+
+
+===== PAGE 31 =====
+Figure 4-9: Illustration of dependent confirmation 
+ 
+2. Service Information Section: This section captures service and attendance details. 
+The entry fields in this section are; 
+a. Type of service 
+b. Date of service (Date of attendance and date of discharge) 
+c. Outcome of service 
+d. Referral details (referring facility name/ facility ID/ CCC) 
+e. Specialties attended 
+  
+Figure 4-10 : Service details section
+
+
+===== PAGE 32 =====
+3. Procedure Section: This section captures details on all valid procedures which 
+were conducted. Data entry fields in this section are; 
+a. Procedural GDRG 
+b. Diagnosis (ICD-10) 
+c. Date of service 
+Figure 4-11 : Procedure section  
+ 
+4. Diagnosis Section: This section captures details on consultations services (non-
+procedural) rendered to a patent. Data entry fields for this section include; 
+a. Diagnosis GDRG 
+b. Diagnosis (ICD-10) 
+ 
+Figure 4-12 : Diagnoses section 
+ 
+5. Investigation Section: This area captures details on all investigation or diagnostic 
+services provided to the patient. The entry fields in this section are; 
+a. Diagnostic GDRG 
+b. Date of service 
+Figure 4-13 : Investigation section
+
+
+===== PAGE 33 =====
+6. Medicines Section: This area captures all prescriptions and medicines dispensed 
+to a patient. The data entry fields for this section are; 
+a. Medicine name or code 
+b. Prescription (dose, duration and frequency) 
+c. Quantity dispensed 
+d. Date of service 
+ 
+7. Pre-authorization Section: This area captures all pre-authorization details for all 
+services used for which pre-authorization was required. Details specified here are; 
+a. Prescriber ID 
+b. Pre-authorization codes (separated by comma’s)    
+Figure 4-14 : Pre-authorization section 
+ 
+ 
+ 
+Some data entry utilities have been made available to aid in movement from one section 
+of the entry form to another. This is to help limit the need to s croll through the various 
+sections of the form. This utility is located at the top right section outside the claims entry 
+form as illustrated in Figure 4-14.  
+ 
+ 
+ 
+ 
+Referral details are required for all referral services. E.g. diagnostic and pharmacy only 
+services.
+
+
+===== PAGE 47 =====
+4. Once the needed parameters are entered, click on the  button to start 
+the search. 
+5. Search results are aggregated under a “Search tab” with an indication of the total 
+number of claims found. 
+ 
+4.8 Preparing Claims for Submission (Exporting Claims) 
+Once all claims have been entered for a month, the next major step is to prepare the 
+claims for submission to NHIS. Claims can only be exported for submission by a user with 
+such privileges (refer to section 3.2). The application offers two (2) options for claims 
+submission. The user has the option to; 
+1. Uploading claims directly to the NHIS server via the internet, or  
+2. Downloading an encrypted claims file and physically sending it to NHIS using a 
+flash drive,  
+To prepare claims for submission, the following are the steps; 
+1. Open the month of interest (refer to section 4.1) and click on the submit clams 
+button =>  button found at the centre left section of the view (indicated by 
+arrow in Figure 4-33). This should open a page that provides more detailed 
+information on the action(s) to be performed (illustrated in Figure 4-34). 
+Figure 4-33: Claims list page showing the Export button
+
+
+===== PAGE 48 =====
+Figure 4-34: Claims Submission / Export page 
+ 
+The submission/export page displays among others the total volume and cost of claims 
+segregated by type of service and the percentage distribution for service and medicine 
+cost. This is illustrated in Figure 4-34 above. 
+Additionally, the user also gets to see information on all recent claims submissions and 
+uploads. It is also recommended that a submission advice report be generated before 
+claims are submitted. To do this, refer to the Reports section of this document. 
+2. Click on Submit Online button  to start the online process of 
+claims submission which will go through the following processes; 
+2.0.1 The system will request for a confirmation from the user to start the online 
+claims submission process, as illustrated in Figure 4-35 below. 
+Figure 4-35: Confirmation for online submission 
+ 
+ Click on Yes Upload to confirm (requires internet)
+
+
+===== PAGE 49 =====
+2.0.2 The process will initiat once the user authorizes the submission by re-entering 
+the password. Please note that only the Insurance Officer role has the user 
+privilege of submitting claims online. 
+ 
+ The status or progress of the ongoing submission will be displayed to the user 
+as shown in Figure 4-36 and 4-37 below.  The upload process may happen 
+within a minute or more depending on the current queue.  
+Figure 4-36: Submission progress monitor 
+ 
+ 
+Figure 4-37: Submission status indicator
+
+
+===== PAGE 50 =====
+2.0.3 The final step of the online submission process is for the user to wait for a 
+feedback, to indicate if the submission was successful or otherwise. (as 
+illustrated in Figure 4-37). A submission confirmation email is sent to the email 
+address of the user or health facility once claims are successfully submitted. 
+Should there be a failure in anyway, the user will be informed via the 
+application as illustrated below.  
+ 
+Figure 4-37: Submission status indicator 
+ 
+ 
+To submit claims offline go through the following steps; 
+1. Click on the Submit Offline button  as shown in Figure 4-34. 
+2. This will generate an encrypted claims file which can be saved on a flash drive 
+(popularly called, Pen drive). 
+3. Submit this file on the flash drive to the closest NHIA district office or Claims 
+Processing Centre. 
+4. A confirmation receipt will be printed and given to the submitter while an email is 
+equally sent the email address assigned to the providers account. 
+ 
+4.9 Exporting and Importing claims 
+This feature helps with easy movement of claims data from other computers to a “central 
+computer” in order to aggregate claim  entries within a  facility prior to submission . This
+
+
+===== PAGE 51 =====
+feature is recommended for scenarios where a health facility has no Local Area Network 
+but with multiple computers and persons  involved in data entry . Under such conditions 
+the application is installed on all user computers but data aggregation at the end of entries 
+are manually done on  a single computer through the claims export and import  feature. 
+Hence all other users export their entries which are then imported into the application on 
+the computer being used as the collation point . Claims management is therefore done at 
+the point of aggregation. 
+To export claims, please do the following; 
+1. Click on the Export/Merge button  located at the top section of the general 
+claims view area of the application . This will pop -up two options  (export 
+claims/import claims) as shown in the diagram below. 
+ 
+2. Select “Export Claims” and indicate the month of interest as illustrated below. 
+ 
+ 
+ 
+To import exported claims; 
+1. Click on the Merge Claims button  and select “Import Claims”. 
+2. A dialogue box will open, requesting the user to select a location of the exported 
+file. Alternatively, the user can drag and drop the exported file into the area shown 
+in Figure 4-38 below.
+
+
+===== PAGE 54 =====
+5.1 General Information 
+This section describes the update feature of the application that enables users to keep 
+the application up to date.  
+The claim-it application, from time to time will require a system update. The update 
+feature of the application enable users to keep the application up to date.  
+5.2 System Update 
+There are two (2) major types of system updates. 
+1. Policy and tariff updates: This has to do with update on claims generation 
+protocols, GDRGs and tariffs. 
+2. Application updates: This refers to update to the structure and (other 
+component) feel of the application. 
+However, all these types of updates are installed in the same manner. Once system 
+updates are available, emails and/or text messages will be sent to all users of the application 
+to notify them. 
+5.3 Installing Updates 
+Updates can either be installed directly via the internet or downloaded and installed 
+offline.  
+5.3.1 Direct Update  
+To update the application directly via the internet, do the following; 
+1. Click on the Settings  button and click on “Check for Update”. 
+Figure 5-01: Settings menu indicating check update button 
+ 
+ 
+2. The application then checks for any recent updates and informs the user through 
+a prompt.
+
+
+===== PAGE 55 =====
+3. Click on “Install Update” to start the installation i.e. if any updates are found. 
+The application periodically checks for updates automatically once it detects an internet 
+connection. However, the user is always informed of any available updates prior to 
+installation. Anytime new updates are available, user will be prompted by a red button 
+indicating “Update Available” on the left side of the home screen of the application. By 
+clicking on this button, the download process is initialized.  
+ 
+5.3.2 Offline Update 
+This option requires the user to download and manually install the update file. To do this; 
+1. Open a web browser and enter claimit.nhia.gov.gh. Go to the Updates section of 
+the webpage to download the required update. Your update file will then be 
+saved to the default download directory of your browser. 
+2. Double-click on the update file to install. You will be notified once the installation 
+is complete.  
+ 
+Details of updates that have been run on the system with regards to Base Data, Service 
+tariffs, Medicine prices, Validation rules and Credentialing information can be found at 
+the Setup Detail section of the application. To open this section, click on the Provider 
+Info area at the left section of the application after login, as shown in Figure 5-1 below; 
+Figure 5-1: Home screen showing the Provider info section 
+ 
+ 
+Update files can also be accessed at any NHIS district office or CPC.
+
+
+===== PAGE 56 =====
+The section as shown in Figure 5-2 shows information on credentialing and system 
+updates. For instance a description of “version 2016-03-01” under Service tariffs simply 
+means the most current tariff version in the application are tariffs with an effective date 
+of March 2016 so on and so forth. Figure 5-2 is a further illustration of this section. 
+Figure 5-2: Provider info view showing updated details
+
+
+===== PAGE 58 =====
+6.1 General Information 
+This section describes the various reports and visualizations in the application. 
+6.2 Types of Report 
+The application comes with seven (7) report types. The reports are categorized under 
+seven (7) themes, i.e. Dashboard, Overview, Attendance, Medicines, Services, Submission 
+Advice and Excel Summary. 
+1. Dashboard: 
+a. Summary attendance. 
+b. Claims submission volume and cost. 
+c. Top 10 Diagnosis. 
+d. Top 10 Prescribed Medicines. 
+2. Overview: 
+a. Claims volume and cost by type of service for the current month. 
+b. Claims volume and cost, month on month for the current year. 
+3. Attendance: 
+a. Attendance by gender and age grouped by specialty. For both OPD and 
+IPD cases. 
+4. Medicines: 
+a. Top ten (10) most prescribed medicines. 
+b. Top ten (10) most utilized medicines by cost. 
+c. Most utilized therapeutic classes by volume 
+5. Services: 
+a. Top ten (10) most utilized GDRGs by volume. 
+b. Top ten (10) most utilized GDRGs by cost. 
+c. Top five (5) Major Diagnosis Categories (MDCs) by volume. 
+6. Submission Advice: 
+a. List of claims that require further attention, categorized into; 
+i. Potential duplicates 
+ii. Multiple ANC claims 
+iii. Attachment required claims 
+7. Excel Summary:
+
+
+===== PAGE 59 =====
+a. Excel Workbook containing sheets on various volume and cost summaries 
+on claims  
+6.3 Accessing reports 
+To access the desired report(s), the user simply clicks on the  menu and 
+selects the desired report by clicking on the select button. All reports are 
+defaulted to report on the current year. However, the period of reporting can be 
+changed by clicking on the filter  button to specify the range of choice. Figures 6.1 to 
+6.4 illustrates some of the reports generated by the application. 
+Figure 6-1: Dashboard 
+ 
+Figure 6-2: Overview of claims report
+
+
+===== PAGE 60 =====
+Figure 6-3: Attendance report 
+ 
+Figure 6-4: Report on service utilization
+
+
+===== PAGE 61 =====
+Figure 6-5: Report on medicine utilization 
+ 
+ 
+6.4 Submission Advice Report 
+This report forms part of the reports available at the reports section of the application. 
+The submission advice report gives the health facility’s insurance officer a report on claims 
+that may require some extra att ention prior to  submission. For instance, based on the 
+types of medicin es dispensed, the lab results  that prompted the prescription of such 
+medicines are required by NHIA during vetting to serve as proof. Hence, such a document 
+will have to be scanned and attached to the affected claims in all such instances. Therefore, 
+it is advised that a submission advice report be generated prior to claims submission. 
+To generate a submission advice report do the following; 
+a. Click on the Reports  menu 
+b. Click on and select the Submission Advice. 
+c. Click on  and select the month of interest 
+d. Click on  to show the reports. Depending on the issues detected 
+the number of reports can span from one to several. This is illustrated in 
+Figure 6-5. 
+Figure 6-5: Report on medicine utilization
