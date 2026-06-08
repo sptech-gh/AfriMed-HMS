@@ -76,14 +76,25 @@
             margin-top: 8px;
         }
 
-		.opd-tabs-custom { border-top: 3px solid #3c8dbc; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; }
+		.opd-tabs-custom { border-top: 3px solid #3c8dbc; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 15px; background: var(--hms-surface, #fff) !important; }
 		.opd-tabs-custom > .nav-tabs > li > a { font-weight: 600; font-size: 13px; padding: 10px 14px; }
 		.opd-tabs-custom > .nav-tabs > li.active > a { border-top-color: transparent; }
-		.opd-tabs-custom > .tab-content { padding: 0; }
-		.opd-tab-meta { padding: 10px 15px; border-bottom: 1px solid #eee; background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+		.opd-tabs-custom > .tab-content { padding: 0; background: var(--hms-surface, #fff) !important; }
+		.opd-tab-meta { padding: 10px 15px; border-bottom: 1px solid var(--hms-border, #eee); background: var(--hms-surface, #fff); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 		.opd-tab-meta .text-muted { font-size: 11px; }
-		.opd-tab-body { background: #fff; }
-		.opd-tab-body .table > thead > tr > th { background: #f5f6f8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #555; padding: 10px 12px; border-bottom: 2px solid #ddd; white-space: nowrap; }
+		.opd-tab-body { background: var(--hms-surface, #fff) !important; }
+		.opd-tab-body.table-responsive { border: 1px solid var(--hms-border, #ddd) !important; }
+		.opd-tab-body table,
+		.opd-tab-body .table,
+		.opd-tab-body table tbody,
+		.opd-tab-body .table tbody,
+		.opd-tab-body table thead,
+		.opd-tab-body .table thead,
+		.opd-tab-body table tr,
+		.opd-tab-body .table tr,
+		.opd-tab-body table td,
+		.opd-tab-body .table td { background: transparent !important; background-color: transparent !important; }
+		.opd-tab-body .table > thead > tr > th { background: var(--table-head-bg, #f5f6f8) !important; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--table-head-text-color, #555) !important; padding: 10px 12px; border-bottom: 2px solid var(--table-border-color, #ddd) !important; white-space: nowrap; }
 		.opd-tab-body .table > tbody > tr > td { padding: 10px 12px; vertical-align: middle; font-size: 13px; }
 
         @media (max-width: 992px) {

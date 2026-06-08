@@ -150,38 +150,40 @@
                                             <?php }}?>
                                             <a href="<?php echo base_url()?>app/ipd_print/print_services/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
                                             <a href="<?php echo base_url()?>app/ipd_print/pdf_services/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-success" target="_blank"><i class="fa fa-print"></i> PDF</a>
-                                           <table class="table table-hover table-striped">
-                                           <thead>
-                                           <tr>
-                                           		<tH>Date</tH>
-                                           		<th>Service Provided</th>
-                                                <th>Qty</th>
-                                                <th>Notes</th>
-                                                <th>Prepared by</th>
-                                                <th></th>
-                                           </tr>
-                                           </thead>
-                                           <tbody>
-                                           <?php foreach($getServices as $getServices){?>
-                                           <tr>
-                                           		<td><?php echo date("M d, Y h:i:s A",strtotime($getServices->dDateTime))?></td>
-                                                <td><?php echo $getServices->particular_name?></td>
-                                                <td><?php echo $getServices->qty?></td>
-                                                <td><?php echo $getServices->notes?></td>
-                                                <td><?php echo $getServices->name?></td>
-                                                <td>
-                                                <?php if($this->session->userdata('emr_viewing') == ""){?>	
-                                                <?php if($getOPDPatient->nStatus == "Pending"){?>
-                                                <form method="post" action="<?php echo base_url()?>app/ipd/delete_bed_side/<?php echo $getServices->bed_pro_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID) ?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove?');">
-                                                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-                                                    <button type="submit" class="btn btn-xs btn-danger">Remove</button>
-                                                </form>
-                                                <?php }}?>
-                                                </td>
-                                           </tr>
-                                           <?php }?>
-                                           </tbody>
-                                           </table>
+                                            <div class="table-responsive">
+                                            <table class="table table-hover table-striped">
+                                            <thead>
+                                            <tr>
+                                            		<tH>Date</tH>
+                                            		<th>Service Provided</th>
+                                                 <th>Qty</th>
+                                                 <th>Notes</th>
+                                                 <th>Prepared by</th>
+                                                 <th></th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach($getServices as $getServices){?>
+                                            <tr>
+                                            		<td><?php echo date("M d, Y h:i:s A",strtotime($getServices->dDateTime))?></td>
+                                                 <td><?php echo $getServices->particular_name?></td>
+                                                 <td><?php echo $getServices->qty?></td>
+                                                 <td><?php echo $getServices->notes?></td>
+                                                 <td><?php echo $getServices->name?></td>
+                                                 <td>
+                                                 <?php if($this->session->userdata('emr_viewing') == ""){?>	
+                                                 <?php if($getOPDPatient->nStatus == "Pending"){?>
+                                                 <form method="post" action="<?php echo base_url()?>app/ipd/delete_bed_side/<?php echo $getServices->bed_pro_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID) ?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove?');">
+                                                     <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                                                     <button type="submit" class="btn btn-xs btn-danger">Remove</button>
+                                                 </form>
+                                                 <?php }}?>
+                                                 </td>
+                                            </tr>
+                                            <?php }?>
+                                            </tbody>
+                                            </table>
+                                            </div>
                                             
                                             <br><br><br><br><br><br><br>
                                             <br><br><br><br><br><br><br>
@@ -272,6 +274,7 @@ xmlhttp.send();
                                             <h4 class="modal-title" id="myModalLabel">Complain</h4>
                                         </div>
                                         <div class="modal-body">
+                                        <div class="table-responsive">
                                         <table class="table table-hover">
                                         <tbody>
                                         <tr>
@@ -306,6 +309,7 @@ xmlhttp.send();
                                         </tr>
                                         </tbody>
                                         </table>
+                                        </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

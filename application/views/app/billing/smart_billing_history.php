@@ -70,6 +70,7 @@
             'CANCELLED' => 'label-danger',
         );
         ?>
+        <div class="table-responsive">
         <table class="table table-bordered table-striped table-hover">
           <thead>
             <tr>
@@ -146,6 +147,7 @@
             </tr>
           </tfoot>
         </table>
+        </div>
         <?php endif; ?>
       </div>
     </div>

@@ -114,8 +114,8 @@
 <?php echo $message;?>
 <a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#intakeModal"><i class="fa fa-plus"></i> Add Intake Record</a>
 <a href="<?php echo base_url()?>app/ipd_print/print_intake/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default btn-sm" target="_blank"><i class="fa fa-print"></i> Print</a>
-<div style="margin-top:10px; overflow:auto; max-height:400px;">
-<table class="table table-hover table-striped table-condensed">
+<div style="margin-top:10px; overflow:auto; max-height:400px;" class="table-responsive">
+<table class="table table-hover table-striped table-condensed nursing-table">
 <thead>
 <tr>
 <th>Date & Time</th>
@@ -133,16 +133,16 @@
 <tbody>
 <?php foreach($getIntake as $row){?>
 <tr>
-<td><small><?php echo date("M d, Y h:i A",strtotime($row->dDateTime));?></small></td>
-<td><?php echo $row->particulars?></td>
-<td><?php echo $row->IV_fluids?></td>
-<td><?php echo $row->oral?></td>
-<td><?php echo isset($row->blood_products) ? $row->blood_products : '0'; ?></td>
-<td><?php echo isset($row->ng_tube_feeds) ? $row->ng_tube_feeds : '0'; ?></td>
-<td><?php echo $row->no_stool?></td>
-<td><?php echo $row->no_urine?></td>
-<td><?php $ci=&get_instance();$ci->load->model('app/general_model');$p=$ci->general_model->getPreparedBy($row->cPreparedBy);echo $p->cPreparedBy;?></td>
-<td>
+<td data-label="Date & Time"><small><?php echo date("M d, Y h:i A",strtotime($row->dDateTime));?></small></td>
+<td data-label="Particulars"><?php echo $row->particulars?></td>
+<td data-label="IV Fluids (ml)"><?php echo $row->IV_fluids?></td>
+<td data-label="Oral (ml)"><?php echo $row->oral?></td>
+<td data-label="Blood Products (ml)"><?php echo isset($row->blood_products) ? $row->blood_products : '0'; ?></td>
+<td data-label="NG Tube/Feeds (ml)"><?php echo isset($row->ng_tube_feeds) ? $row->ng_tube_feeds : '0'; ?></td>
+<td data-label="Stool (count)"><?php echo $row->no_stool?></td>
+<td data-label="Urine (count)"><?php echo $row->no_urine?></td>
+<td data-label="Recorded By"><?php $ci=&get_instance();$ci->load->model('app/general_model');$p=$ci->general_model->getPreparedBy($row->cPreparedBy);echo $p->cPreparedBy;?></td>
+<td data-label="Actions">
 <form method="post" action="<?php echo base_url()?>app/nurse_module/delete_intake/<?php echo $row->intake_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID)?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Remove this intake record?');">
 <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 <button type="submit" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
@@ -159,8 +159,8 @@
 <div class="tab-pane" id="tab_output">
 <a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#outputModal"><i class="fa fa-plus"></i> Add Output Record</a>
 <a href="<?php echo base_url()?>app/ipd_print/print_output/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default btn-sm" target="_blank"><i class="fa fa-print"></i> Print</a>
-<div style="margin-top:10px; overflow:auto; max-height:400px;">
-<table class="table table-hover table-striped table-condensed">
+<div style="margin-top:10px; overflow:auto; max-height:400px;" class="table-responsive">
+<table class="table table-hover table-striped table-condensed nursing-table">
 <thead>
 <tr>
 <th>Date & Time</th>
@@ -179,17 +179,17 @@
 <tbody>
 <?php foreach($getOutput as $row){?>
 <tr>
-<td><small><?php echo date("M d, Y h:i A",strtotime($row->dDateTime));?></small></td>
-<td><?php echo $row->urine?></td>
-<td><?php echo $row->feaces?></td>
-<td><?php echo isset($row->vomit) ? $row->vomit : '0'; ?></td>
-<td><?php echo isset($row->drainage) ? $row->drainage : '0'; ?></td>
-<td><?php echo isset($row->drainage_site) ? htmlspecialchars($row->drainage_site) : '—'; ?></td>
-<td><?php echo isset($row->stool_count) ? $row->stool_count : '—'; ?></td>
-<td><?php echo isset($row->stool_consistency) ? htmlspecialchars($row->stool_consistency) : '—'; ?></td>
-<td><?php echo $row->respitation?></td>
-<td><?php $ci=&get_instance();$ci->load->model('app/general_model');$p=$ci->general_model->getPreparedBy($row->cPreparedBy);echo $p->cPreparedBy;?></td>
-<td>
+<td data-label="Date & Time"><small><?php echo date("M d, Y h:i A",strtotime($row->dDateTime));?></small></td>
+<td data-label="Urine (ml)"><?php echo $row->urine?></td>
+<td data-label="Faeces (ml)"><?php echo $row->feaces?></td>
+<td data-label="Vomit/Emesis (ml)"><?php echo isset($row->vomit) ? $row->vomit : '0'; ?></td>
+<td data-label="Drainage (ml)"><?php echo isset($row->drainage) ? $row->drainage : '0'; ?></td>
+<td data-label="Drain Site"><?php echo isset($row->drainage_site) ? htmlspecialchars($row->drainage_site) : '—'; ?></td>
+<td data-label="Stool Count"><?php echo isset($row->stool_count) ? $row->stool_count : '—'; ?></td>
+<td data-label="Consistency"><?php echo isset($row->stool_consistency) ? htmlspecialchars($row->stool_consistency) : '—'; ?></td>
+<td data-label="Insensible Loss (ml)"><?php echo $row->respitation?></td>
+<td data-label="Recorded By"><?php $ci=&get_instance();$ci->load->model('app/general_model');$p=$ci->general_model->getPreparedBy($row->cPreparedBy);echo $p->cPreparedBy;?></td>
+<td data-label="Actions">
 <form method="post" action="<?php echo base_url()?>app/nurse_module/delete_output/<?php echo $row->output_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID)?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Remove this output record?');">
 <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
 <button type="submit" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
@@ -205,8 +205,8 @@
 <!-- GLUCOSE TAB -->
 <div class="tab-pane" id="tab_glucose">
 <a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#glucoseModal"><i class="fa fa-plus"></i> Add Glucose Reading</a>
-<div style="margin-top:10px; overflow:auto; max-height:400px;">
-<table class="table table-hover table-striped table-condensed">
+<div style="margin-top:10px; overflow:auto; max-height:400px;" class="table-responsive">
+<table class="table table-hover table-striped table-condensed nursing-table">
 <thead><tr><th>Date & Time</th><th>Type</th><th>Value (mmol/L)</th><th>Status</th><th>Notes</th><th>Recorded By</th></tr></thead>
 <tbody>
 <?php if(isset($glucoseReadings) && !empty($glucoseReadings)): ?>
@@ -219,12 +219,12 @@ elseif ($val > 11.1) { $cls = 'glucose-high'; $status = 'High'; }
 elseif ($val > 7.8) { $cls = 'glucose-high'; $status = 'Elevated'; }
 ?>
 <tr>
-<td><small><?php echo date("M d, Y h:i A", strtotime($g->dDateTime)); ?></small></td>
-<td><span class="label label-default"><?php echo htmlspecialchars($g->glucose_type); ?></span></td>
-<td class="<?php echo $cls; ?>"><strong><?php echo number_format($val,1); ?></strong> mmol/L</td>
-<td><span class="<?php echo $cls; ?>"><?php echo $status; ?></span></td>
-<td><?php echo $g->notes ? htmlspecialchars($g->notes) : '—'; ?></td>
-<td><?php echo htmlspecialchars($g->nurse_name); ?></td>
+<td data-label="Date & Time"><small><?php echo date("M d, Y h:i A", strtotime($g->dDateTime)); ?></small></td>
+<td data-label="Type"><span class="label label-default"><?php echo htmlspecialchars($g->glucose_type); ?></span></td>
+<td data-label="Value (mmol/L)" class="<?php echo $cls; ?>"><strong><?php echo number_format($val,1); ?></strong> mmol/L</td>
+<td data-label="Status"><span class="<?php echo $cls; ?>"><?php echo $status; ?></span></td>
+<td data-label="Notes"><?php echo $g->notes ? htmlspecialchars($g->notes) : '—'; ?></td>
+<td data-label="Recorded By"><?php echo htmlspecialchars($g->nurse_name); ?></td>
 </tr>
 <?php endforeach; ?>
 <?php else: ?>
@@ -249,7 +249,7 @@ elseif ($val > 7.8) { $cls = 'glucose-high'; $status = 'Elevated'; }
 <input type="hidden" name="opd_no" value="<?php echo $getOPDPatient->IO_ID?>">
 <input type="hidden" name="patient_no" value="<?php echo $getOPDPatient->patient_no?>">
 <div class="modal fade" id="intakeModal" tabindex="-1" role="dialog">
-<div class="modal-dialog">
+<div class="modal-dialog modal-dialog-scrollable">
 <div class="modal-content">
 <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title"><i class="fa fa-arrow-down"></i> Intake Record</h4></div>
 <div class="modal-body">
@@ -281,7 +281,7 @@ elseif ($val > 7.8) { $cls = 'glucose-high'; $status = 'Elevated'; }
 <input type="hidden" name="opd_no" value="<?php echo $getOPDPatient->IO_ID?>">
 <input type="hidden" name="patient_no" value="<?php echo $getOPDPatient->patient_no?>">
 <div class="modal fade" id="outputModal" tabindex="-1" role="dialog">
-<div class="modal-dialog">
+<div class="modal-dialog modal-dialog-scrollable">
 <div class="modal-content">
 <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title"><i class="fa fa-arrow-up"></i> Output Record</h4></div>
 <div class="modal-body">
@@ -317,7 +317,7 @@ elseif ($val > 7.8) { $cls = 'glucose-high'; $status = 'Elevated'; }
 <input type="hidden" name="opd_no" value="<?php echo $getOPDPatient->IO_ID?>">
 <input type="hidden" name="patient_no" value="<?php echo $getOPDPatient->patient_no?>">
 <div class="modal fade" id="glucoseModal" tabindex="-1" role="dialog">
-<div class="modal-dialog">
+<div class="modal-dialog modal-dialog-scrollable">
 <div class="modal-content">
 <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title"><i class="fa fa-tint"></i> Blood Glucose Reading</h4></div>
 <div class="modal-body">

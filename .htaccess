@@ -1,6 +1,6 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /hms-master/
+  # RewriteBase /hms-master/
 
   # Normalize %20 (URL-encoded space) to dash in URI path
   # Loops until all %20 occurrences are replaced (handles multiple spaces)

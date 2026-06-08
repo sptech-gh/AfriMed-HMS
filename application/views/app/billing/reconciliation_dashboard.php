@@ -92,6 +92,7 @@
                         </div>
                         <div class="box-body">
                             <?php if ($pharmacy_summary): ?>
+                            <div class="table-responsive">
                             <table class="table table-condensed">
                                 <tr><td>Total Transactions</td><td class="text-right"><strong><?php echo $pharmacy_summary->total_transactions; ?></strong></td></tr>
                                 <tr><td>Total Amount</td><td class="text-right"><strong>GHS <?php echo number_format($pharmacy_summary->total_amount, 2); ?></strong></td></tr>
@@ -100,6 +101,7 @@
                                 <tr><td>NHIS Amount</td><td class="text-right"><strong>GHS <?php echo number_format($pharmacy_summary->nhis_amount, 2); ?></strong></td></tr>
                                 <tr><td>Completed</td><td class="text-right"><strong><?php echo $pharmacy_summary->completed_count; ?></strong></td></tr>
                             </table>
+                            </div>
                             <?php else: ?>
                             <p class="text-muted">No pharmacy transactions today</p>
                             <?php endif; ?>
@@ -113,6 +115,7 @@
                         </div>
                         <div class="box-body">
                             <?php if ($lab_summary): ?>
+                            <div class="table-responsive">
                             <table class="table table-condensed">
                                 <tr><td>Total Transactions</td><td class="text-right"><strong><?php echo $lab_summary->total_transactions; ?></strong></td></tr>
                                 <tr><td>Total Amount</td><td class="text-right"><strong>GHS <?php echo number_format($lab_summary->total_amount, 2); ?></strong></td></tr>
@@ -121,6 +124,7 @@
                                 <tr><td>NHIS Amount</td><td class="text-right"><strong>GHS <?php echo number_format($lab_summary->nhis_amount, 2); ?></strong></td></tr>
                                 <tr><td>Completed</td><td class="text-right"><strong><?php echo $lab_summary->completed_count; ?></strong></td></tr>
                             </table>
+                            </div>
                             <?php else: ?>
                             <p class="text-muted">No laboratory transactions today</p>
                             <?php endif; ?>

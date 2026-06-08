@@ -20,6 +20,74 @@
                 --shadow:  0 2px 10px rgba(0,0,0,0.09);
                 --radius:  8px;
             }
+
+            .theme-dark {
+                --primary: var(--hms-primary);
+                --success: var(--hms-success);
+                --warning: var(--hms-warning);
+                --danger:  var(--hms-danger);
+                --purple:  #7c3aed;
+                --shadow:  0 2px 10px rgba(0,0,0,0.4);
+            }
+
+            /* Dark mode overrides */
+            .theme-dark .al-stat {
+                background: var(--hms-surface, #0f172a) !important;
+                border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
+            .theme-dark .al-stat:hover {
+                background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
+            .theme-dark .al-stat .al-lbl {
+                color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+            }
+            .theme-dark .al-tab {
+                background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+                border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+                color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+            }
+            .theme-dark .al-tab:hover {
+                background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
+            .theme-dark .al-tab.active {
+                color: #fff !important;
+            }
+            .theme-dark .al-table-wrap {
+                background: var(--hms-surface, #0f172a) !important;
+                border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            }
+            .theme-dark .al-table-header {
+                border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
+            .theme-dark .al-table-header h4 {
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
+            .theme-dark .al-table {
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
+            .theme-dark .al-table thead th {
+                background: var(--table-head-bg, #1e293b) !important;
+                border-bottom-color: var(--hms-border-strong, rgba(255,255,255,0.16)) !important;
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
+            .theme-dark .al-table tbody tr {
+                border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+                background: transparent;
+            }
+            .theme-dark .al-table tbody tr:hover {
+                background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+            }
+            .theme-dark .al-bar-wrap {
+                background: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            }
+            .theme-dark .days-pill {
+                background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+                color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            }
             /* Stat cards */
             .al-stat { background:#fff; border-radius:var(--radius); padding:18px 20px;
                 box-shadow:var(--shadow); display:flex; align-items:center; gap:16px;

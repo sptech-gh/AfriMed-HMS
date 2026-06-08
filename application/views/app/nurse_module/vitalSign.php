@@ -152,7 +152,8 @@
                                            <a href="#" class="btn btn-primary" data-toggle="modal" data-target="#myModal"><i class="fa fa-plus"></i> Add Vital Parameters</a>
                                      
                                            <a href="<?php echo base_url()?>app/ipd_print/print_vital/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
-                                           <table class="table table-hover table-striped">
+                                           <div class="table-responsive">
+                                           <table class="table table-hover table-striped nursing-table">
                                            <thead>
                                            		<tr>
                                                 	<th>Date Time</th>
@@ -163,10 +164,10 @@
                                                     <th>Respiration</th>
                                                     <th>Weight</th>
                                                     <?php if (isset($nurse_enhancements_ready) && $nurse_enhancements_ready): ?>
-														<th>SpO2</th>
-														<th>Blood Sugar</th>
-														<th>Pain</th>
-													<?php endif; ?>
+ 														<th>SpO2</th>
+ 														<th>Blood Sugar</th>
+ 														<th>Pain</th>
+ 													<?php endif; ?>
                                                     <th>Prepared by</th>
                                                     <th></th>
                                                 </tr>
@@ -174,25 +175,25 @@
                                            <tbody>
                                            <?php foreach($getVital as $rows){?>
                                            <tr>
-                                           		<td><?php echo date("M d, Y h:i:s A",strtotime($rows->dDateTime));?></td>
-                                           		<td><?php echo $rows->pulse_rate?>/min</td>
-                                                <td><?php echo $rows->temperature?> C</td>
-                                                <td><?php echo $rows->height?> Cm</td>
-                                                <td><?php echo $rows->bp?> mm of Hg</td>
-                                                <td><?php echo $rows->respiration?>/min</td>
-                                                <td><?php echo $rows->weight?>Kg</td>
+                                           		<td data-label="Date Time"><?php echo date("M d, Y h:i:s A",strtotime($rows->dDateTime));?></td>
+                                           		<td data-label="Pulse rate"><?php echo $rows->pulse_rate?>/min</td>
+                                                <td data-label="Temperature"><?php echo $rows->temperature?> C</td>
+                                                <td data-label="Height"><?php echo $rows->height?> Cm</td>
+                                                <td data-label="Blood Pressure"><?php echo $rows->bp?> mm of Hg</td>
+                                                <td data-label="Respiration"><?php echo $rows->respiration?>/min</td>
+                                                <td data-label="Weight"><?php echo $rows->weight?>Kg</td>
                                                 <?php if (isset($nurse_enhancements_ready) && $nurse_enhancements_ready): ?>
-													<td><?php echo isset($rows->spo2) ? $rows->spo2 : ''; ?></td>
-													<td><?php echo isset($rows->blood_sugar) ? $rows->blood_sugar : ''; ?></td>
-													<td><?php echo isset($rows->pain_score) ? $rows->pain_score : ''; ?></td>
-												<?php endif; ?>
-                                                <td><?php 
+ 													<td data-label="SpO2"><?php echo isset($rows->spo2) ? $rows->spo2 : ''; ?></td>
+ 													<td data-label="Blood Sugar"><?php echo isset($rows->blood_sugar) ? $rows->blood_sugar : ''; ?></td>
+ 													<td data-label="Pain"><?php echo isset($rows->pain_score) ? $rows->pain_score : ''; ?></td>
+ 												<?php endif; ?>
+                                                <td data-label="Prepared by"><?php 
 												$ci_obj = & get_instance();
 												$ci_obj->load->model('app/general_model');
 												$pages = $ci_obj->general_model->getPreparedBy($rows->cPreparedBy);
 												
 				                                                								echo $pages->cPreparedBy?></td>
-                                                <td>
+                                                <td data-label="Actions">
                                                 <form method="post" action="<?php echo base_url()?>app/nurse_module/delete_vital/<?php echo $rows->vital_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID) ?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove?');">
                                                     <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
                                                     <button type="submit" class="btn btn-xs btn-danger">Remove</button>
@@ -203,6 +204,7 @@
                                            <?php }?> 
                                            </tbody>
                                            </table>
+                                           </div>
                                         	
                                             
                                             
@@ -230,7 +232,7 @@
                             <input type="hidden" name="opd_no" value="<?php echo $getOPDPatient->IO_ID?>">
                             <input type="hidden" name="patient_no" value="<?php echo $getOPDPatient->patient_no?>">
                             <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                                <div class="modal-dialog">
+                                <div class="modal-dialog modal-dialog-scrollable">
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -261,40 +263,85 @@
                                         </tr>
                                         <tr>
                                            		<td>Pulse Rate</td>
-                                                <td><input type="text" name="pulse_rate" id="pulse_rate" style="width: 100px;" >&nbsp;&nbsp;/min</td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control input-sm" name="pulse_rate" id="pulse_rate">
+                                                        <span class="input-group-addon">/min</span>
+                                                    </div>
+                                                </td>
                                            </tr>
                                            <tr>
                                            		<td>Blood Pressure</td>
-                                                <td><input type="text" name="bp" id="bp"  style="width: 100px;" >&nbsp;&nbsp;mm of Hg</td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control input-sm" name="bp" id="bp">
+                                                        <span class="input-group-addon">mm of Hg</span>
+                                                    </div>
+                                                </td>
                                            </tr>
                                            <tr>
                                            		<td>Temperature</td>
-                                                <td><input type="text" name="temperature" id="temperature" style="width: 100px;" >&nbsp;&nbsp;C</td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control input-sm" name="temperature" id="temperature">
+                                                        <span class="input-group-addon">C</span>
+                                                    </div>
+                                                </td>
                                            </tr>
                                            <tr>
                                            		<td>Respiration</td>
-                                                <td><input type="text" name="respiration" id="respiration"  style="width: 100px;" >&nbsp;&nbsp;/min</td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control input-sm" name="respiration" id="respiration">
+                                                        <span class="input-group-addon">/min</span>
+                                                    </div>
+                                                </td>
                                            </tr>
                                            <tr>
                                            		<td>Height</td>
-                                                <td><input type="text" name="height" id="height"  style="width: 100px;">&nbsp;&nbsp;Cm</td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control input-sm" name="height" id="height">
+                                                        <span class="input-group-addon">Cm</span>
+                                                    </div>
+                                                </td>
                                            </tr>
                                            <tr>
                                            		<td>Weight</td>
-                                                <td><input type="text" name="weight" id="weight"  style="width: 100px;">&nbsp;&nbsp;Kg</td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control input-sm" name="weight" id="weight">
+                                                        <span class="input-group-addon">Kg</span>
+                                                    </div>
+                                                </td>
                                            </tr>
                                            <?php if (isset($nurse_enhancements_ready) && $nurse_enhancements_ready): ?>
 												<tr>
 													<td>SpO2</td>
-													<td><input type="text" name="spo2" id="spo2" style="width: 100px;" >&nbsp;&nbsp;%</td>
+                                                    <td>
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control input-sm" name="spo2" id="spo2">
+                                                            <span class="input-group-addon">%</span>
+                                                        </div>
+                                                    </td>
 												</tr>
 												<tr>
 													<td>Blood Sugar</td>
-													<td><input type="text" name="blood_sugar" id="blood_sugar" style="width: 100px;" >&nbsp;&nbsp;mmol/L</td>
+                                                    <td>
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control input-sm" name="blood_sugar" id="blood_sugar">
+                                                            <span class="input-group-addon">mmol/L</span>
+                                                        </div>
+                                                    </td>
 												</tr>
 												<tr>
 													<td>Pain Score</td>
-													<td><input type="text" name="pain_score" id="pain_score" style="width: 100px;" >&nbsp;&nbsp;/10</td>
+                                                    <td>
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control input-sm" name="pain_score" id="pain_score">
+                                                            <span class="input-group-addon">/10</span>
+                                                        </div>
+                                                    </td>
 												</tr>
 											<?php endif; ?>
                                         </tbody>

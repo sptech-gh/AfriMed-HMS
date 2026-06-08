@@ -677,10 +677,12 @@ class Diagnostic_notifications_model extends CI_Model
         ];
 
         $this->email->initialize($email_config);
-        $this->email->from($config['username'], $config['from_name'] ?? 'HMS Diagnostics');
+        $this->email->from($config['username'], getFacilityName());
         $this->email->to($to);
         $this->email->subject($subject);
-        $this->email->message($body);
+        
+        $wrapped_body = wrap_email_in_platform_template($subject, $body);
+        $this->email->message($wrapped_body);
 
         if ($this->email->send()) {
             return ['success' => true, 'response' => 'Sent', 'message_id' => uniqid()];

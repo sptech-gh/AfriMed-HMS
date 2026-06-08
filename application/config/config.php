@@ -35,7 +35,8 @@ if (!empty($_SERVER['HTTP_HOST'])) {
         || (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
     );
     $scheme = $isHttps ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
+    // Prioritize X-Forwarded-Host (from Cloudflare/reverse proxies) so links and assets use the public URL
+    $host = !empty($_SERVER['HTTP_X_FORWARDED_HOST']) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : $_SERVER['HTTP_HOST'];
     // Derive install path from SCRIPT_NAME (e.g. "/hms-master/index.php" -> "/hms-master/")
     $scriptName = isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '/index.php';
     $installPath = rtrim(str_replace('\\', '/', dirname($scriptName)), '/') . '/';

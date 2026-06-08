@@ -71,6 +71,69 @@
         .aud-nav a { flex:1; min-width:160px; }
         .empty-state { text-align:center; padding:36px; color:#aaa; }
         .empty-state i { font-size:36px; display:block; margin-bottom:10px; }
+
+        /* Dark mode overrides */
+        .theme-dark .pat-card {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .pat-card-field .pcf-label,
+        .theme-dark .pat-card-field .pcf-sub {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .pat-divider {
+            background: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .aud-table-wrap {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .aud-table-header {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .aud-table thead th {
+            background: var(--table-head-bg, #1e293b) !important;
+            border-bottom-color: var(--hms-border-strong, rgba(255,255,255,0.16)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .aud-table tbody tr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .aud-table tbody tr:hover {
+            background: var(--table-row-hover-bg, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark .empty-state {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .aud-badge.PENDING,
+        .theme-dark .act-badge.HOLD {
+            background: var(--hms-warning-bg, rgba(245, 158, 11, 0.12)) !important;
+            color: var(--hms-warning, #f59e0b) !important;
+            border: 1px solid rgba(245, 158, 11, 0.2) !important;
+        }
+        .theme-dark .aud-badge.VERIFIED,
+        .theme-dark .act-badge.VERIFY {
+            background: var(--hms-info-bg, rgba(34, 211, 238, 0.12)) !important;
+            color: var(--hms-info, #22d3ee) !important;
+            border: 1px solid rgba(34, 211, 238, 0.2) !important;
+        }
+        .theme-dark .aud-badge.DISPENSED,
+        .theme-dark .act-badge.UNLOCK,
+        .theme-dark .act-badge.RESUME {
+            background: var(--hms-success-bg, rgba(34, 197, 94, 0.12)) !important;
+            color: var(--hms-success, #22c55e) !important;
+            border: 1px solid rgba(34, 197, 94, 0.2) !important;
+        }
+        .theme-dark .aud-badge.CANCELLED,
+        .theme-dark .aud-badge.ON_HOLD,
+        .theme-dark .act-badge.LOCK,
+        .theme-dark .act-badge.CANCEL {
+            background: var(--hms-danger-bg, rgba(239, 68, 68, 0.12)) !important;
+            color: var(--hms-danger, #ef4444) !important;
+            border: 1px solid rgba(239, 68, 68, 0.2) !important;
+        }
     </style>
 </head>
 <body class="skin-blue">

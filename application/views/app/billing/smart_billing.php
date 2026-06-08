@@ -97,6 +97,7 @@
                 No pending billing entries for this date.
               </div>
             <?php else: ?>
+            <div class="table-responsive">
             <table class="table table-hover table-condensed" id="pendingTable">
               <thead>
                 <tr>
@@ -147,6 +148,7 @@
                 <?php endforeach; ?>
               </tbody>
             </table>
+            </div>
             <?php endif; ?>
           </div>
         </div>
@@ -165,6 +167,7 @@
             <?php if (empty($billed_queue)): ?>
               <div class="text-center" style="padding:20px;color:#aaa;"><i class="fa fa-info-circle"></i> No bills processed yet today.</div>
             <?php else: ?>
+            <div class="table-responsive">
             <table class="table table-condensed table-striped">
               <thead>
                 <tr>
@@ -201,6 +204,7 @@
                 <?php endforeach; ?>
               </tbody>
             </table>
+            </div>
             <?php endif; ?>
           </div>
         </div>
@@ -326,6 +330,7 @@
             <h3 class="box-title"><i class="fa fa-info-circle"></i> GHS Billing Rules</h3>
           </div>
           <div class="box-body" style="font-size:13px;">
+            <div class="table-responsive">
             <table class="table table-condensed">
               <tr>
                 <td><span class="label label-primary">First Visit</span></td>
@@ -348,6 +353,7 @@
                 <td>Consultation <strong>Billed</strong></td>
               </tr>
             </table>
+            </div>
           </div>
         </div>
       </div>
@@ -573,11 +579,13 @@ $(document).on('click', '.btn-preview-billing', function() {
             + '</div>'
             + '<div style="margin-bottom:8px;">Visit Type: ' + vLabel + ' &nbsp; Payer: <span class="label label-' + (payer==='NHIS'?'blue':'default') + '">' + payer + '</span></div>'
             + (visit.consultation_waived && visit.waiver_reason ? '<div class="alert alert-success" style="padding:6px 10px;font-size:12px;"><i class="fa fa-check"></i> ' + $('<div>').text(visit.waiver_reason).html() + '</div>' : '')
+            + '<div class="table-responsive">'
             + '<table class="table table-condensed" style="margin-top:10px;">'
             + '<thead><tr><th>Item</th><th style="text-align:right;">Amount</th></tr></thead>'
             + '<tbody>' + regRow + conRow + '</tbody>'
             + '<tfoot><tr><th>TOTAL</th><th style="text-align:right;font-size:16px;color:#27ae60;">GHS ' + total.toFixed(2) + '</th></tr></tfoot>'
-            + '</table>';
+            + '</table>'
+            + '</div>';
 
         if (total === 0 && fees.consultation_waived && !fees.apply_registration) {
             html += '<div class="alert alert-info" style="padding:6px 10px;font-size:12px;"><i class="fa fa-info-circle"></i> This visit has no charges. Confirming will mark it as billed.</div>';

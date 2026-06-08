@@ -12,9 +12,31 @@
    		<link href="<?php echo base_url()?>public/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
         <link href="<?php echo base_url();?>public/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
         <link href="<?php echo base_url();?>public/css/ionicons.min.css" rel="stylesheet" type="text/css" />
+        <link href="<?php echo base_url();?>public/css/hms-enhanced.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css" />
+        <script type="text/javascript">
+        (function(){
+            try {
+                var stored = localStorage.getItem('hms_ui_theme');
+                var theme = (stored === 'dark' || stored === 'light') ? stored : 'light';
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('theme-dark');
+                    document.documentElement.classList.remove('theme-light');
+                } else {
+                    document.documentElement.classList.add('theme-light');
+                    document.documentElement.classList.remove('theme-dark');
+                }
+            } catch (e) {}
+        })();
+        </script>
+        <style>
+            body {
+                background: transparent !important;
+            }
+        </style>
 </head>  
 
 <body>
+<div class="table-responsive">
 <table cellpadding="5" cellspacing="5">
 <tr>
 	<td>
@@ -46,15 +68,16 @@
 		<?php echo form_open_multipart(base_url().'app/'.$moduleBase.'/upload_lab_result'); ?>
 		<input type="hidden" name="io_lab_id" value="<?php echo $lab;?>">
 		<fieldset>
-			<input type="file" name="result_upload" size="20" accept="application/pdf,image/jpeg,image/png" />
+			<input type="file" name="result_upload" size="20" accept="application/pdf,image/jpeg,image/png" class="form-control input-sm" style="width: auto; display: inline-block; margin-bottom: 10px;" />
 			<br />
-			<input type="submit" value="upload" />
+			<input type="submit" value="upload" class="btn btn-sm btn-primary" />
 		</fieldset>
 		<?php echo form_close();?>
 	<?php } ?>
     </td>
 </tr>
 </table>
+</div>
 
 </body>
 </html>

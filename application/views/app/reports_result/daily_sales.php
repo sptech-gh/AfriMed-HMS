@@ -4,7 +4,7 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Hebrew Medical Center</title>   
+<title><?php echo getFacilityName(); ?></title>   
 </head>  
 <style>
 body{

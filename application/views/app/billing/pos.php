@@ -91,6 +91,7 @@
 
                             </div>
                             <div class="box-footer clearfix">
+                                <div class="table-responsive">
                                 <table cellpadding="2" cellspacing="2" width="100%">
                                     <tr>
                                         <td><b>IOPD No.</b></td>
@@ -127,6 +128,7 @@
                                         </td>
                                     </tr>
                                 </table>
+                                </div>
 
                             </div>
                         </div>
@@ -148,6 +150,7 @@
 									height: 350px;
 									text-align: left;
 									overflow: auto">
+                                        <div class="table-responsive">
                                         <table class="table table-striped" id="myTable">
                                             <thead>
                                                 <tr>
@@ -163,9 +166,11 @@
                                             <tbody>
                                             </tbody>
                                         </table>
+                                        </div>
                                     </div>
                                 </div>
                                 <br>
+                                <div class="table-responsive">
                                 <table width="100%">
                                     <tr>
                                         <td>
@@ -179,6 +184,7 @@
                                         </td>
                                     </tr>
                                 </table>
+                                </div>
 
                             </div>
 
@@ -275,6 +281,7 @@
                         }
                     </script>
                     <div class="modal-body">
+                        <div class="table-responsive">
                         <table class="table table-striped">
                             <tbody>
                                 <tr>
@@ -317,6 +324,7 @@
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

@@ -156,43 +156,45 @@
                                            <?php }}?>
                                            <a href="<?php echo base_url()?>app/ipd_print/print_progress_note/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
                                            <a href="<?php echo base_url()?>app/ipd_print/pdf_progress_note/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-success" target="_blank"><i class="fa fa-print"></i> PDF</a>
-                                           <table class="table table-hover table-striped">
-                                           <thead>
-                                           		<tr>
+                                            <div class="table-responsive">
+                                            <table class="table table-hover table-striped">
+                                            <thead>
+                                            		<tr>
                                                 	<th>Date Time</th>
-                                                    <th>Progress</th>
-                                                    <th>Treatment</th>
-                                                    <th>Remarks</th>
-                                                    <th>Prepared by</th>
-                                                    <th></th>
-                                                </tr>
-                                           </thead>
-                                           <tbody>
-                                           <?php foreach($getProgressNote as $rows){?>
-                                           <tr>
-                                           		<td><?php echo date("M d, Y h:i:s A",strtotime($rows->dDateTime));?></td>
-                                                <td><?php echo $rows->progress?></td>
-                                                <td><?php echo $rows->treatment?></td>
-                                                <td><?php echo $rows->remarks?></td>
-                                                <td><?php 
+                                                     <th>Progress</th>
+                                                     <th>Treatment</th>
+                                                     <th>Remarks</th>
+                                                     <th>Prepared by</th>
+                                                     <th></th>
+                                                 </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach($getProgressNote as $rows){?>
+                                            <tr>
+                                            		<td><?php echo date("M d, Y h:i:s A",strtotime($rows->dDateTime));?></td>
+                                                 <td><?php echo $rows->progress?></td>
+                                                 <td><?php echo $rows->treatment?></td>
+                                                 <td><?php echo $rows->remarks?></td>
+                                                 <td><?php 
 												$ci_obj = & get_instance();
 												$ci_obj->load->model('app/general_model');
 												$pages = $ci_obj->general_model->getPreparedBy($rows->cPreparedBy);
 												
 												echo $pages->cPreparedBy?></td>
-                                                <td>
-                                                <?php if($this->session->userdata('emr_viewing') == ""){?>	
-                                                <?php if($getOPDPatient->nStatus == "Pending"){?>
-                                                <form method="post" action="<?php echo base_url()?>app/ipd/delete_progress/<?php echo $rows->progress_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID) ?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove?');">
-                                                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-                                                    <button type="submit" class="btn btn-xs btn-danger">Remove</button>
-                                                </form>
-                                                <?php }}?>
-                                                </td>
-                                           </tr>
-                                           <?php }?> 
-                                           </tbody>
-                                           </table>
+                                                 <td>
+                                                 <?php if($this->session->userdata('emr_viewing') == ""){?>	
+                                                 <?php if($getOPDPatient->nStatus == "Pending"){?>
+                                                 <form method="post" action="<?php echo base_url()?>app/ipd/delete_progress/<?php echo $rows->progress_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID) ?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove?');">
+                                                     <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                                                     <button type="submit" class="btn btn-xs btn-danger">Remove</button>
+                                                 </form>
+                                                 <?php }}?>
+                                                 </td>
+                                            </tr>
+                                            <?php }?> 
+                                            </tbody>
+                                            </table>
+                                            </div>
                                             
                                             <br><br><br><br><br><br><br>
                                             <br><br><br><br><br><br><br>
@@ -276,6 +278,7 @@ xmlhttp.send();
 }
 </script>
                                         <div class="modal-body">
+                                        <div class="table-responsive">
                                         <table class="table table-hover">
                                         <tbody>
                                         <tr>
@@ -312,6 +315,7 @@ xmlhttp.send();
                                         </tr>
                                         </tbody>
                                         </table>
+                                        </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

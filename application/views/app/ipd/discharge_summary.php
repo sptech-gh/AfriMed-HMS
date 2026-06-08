@@ -169,6 +169,7 @@
                                             <input type="hidden" name="patient_no" value="<?php echo $getOPDPatient->patient_no?>">
                                            
                                             <?php echo $message;?>
+                                            <div class="table-responsive">
                                            <table class="table table-hover">
                                            <tbody>
                                             <tr>
@@ -214,6 +215,7 @@
                                            </tr>
                                            </tbody>
                                            </table>
+                                           </div>
                                            </form>
                                             
                                             <br><br><br><br><br><br><br>

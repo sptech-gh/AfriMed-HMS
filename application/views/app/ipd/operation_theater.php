@@ -261,6 +261,7 @@ xmlhttp3.send();
 </script>
 
                                             <?php echo $message;?>
+                                            <div class="table-responsive">
                                            <table class="table table-hover">
                                            <tbody>
                                            	<tr>
@@ -418,6 +419,7 @@ xmlhttp3.send();
                                            </tr>
                                            </tbody>
                                            </table>
+                                           </div>
                                            </form>
                                             
                                             <br><br><br><br><br><br><br>

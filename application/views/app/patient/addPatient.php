@@ -176,6 +176,7 @@
                                 			</ul>
                                             <div class="tab-content">
                                             	<div class="tab-pane active" id="tab_1">
+                                                    <div class="table-responsive">
                                                 	<table cellpadding="3" cellspacing="3" width="100%">
                                                     <tr>
                                                     	<td colspan="2">
@@ -327,8 +328,10 @@
                                                         </td>
                                                     </tr>
                                                     </table>
+                                                    </div>
                                                 </div>
                                                 <div class="tab-pane" id="tab_2">
+                                                    <div class="table-responsive">
                                                 	<table cellpadding="3" cellspacing="3" width="100%">
                                                     <tr>
                                                     	<td colspan="2"></td>
@@ -377,8 +380,10 @@
                                                         </td>
                                                     </tr>
                                                     </table>
+                                                    </div>
                                                 </div>
                                                 <div class="tab-pane" id="tab_3">
+                                                    <div class="table-responsive">
                                                		<table cellpadding="3" cellspacing="3" width="100%">
                                                     <tr>
                                                     	<td colspan="2"></td>
@@ -430,8 +435,10 @@
                                                         </td>
                                                     </tr>
                                                     </table>
+                                                    </div>
                                                 </div>
                                                 <div class="tab-pane" id="tab_4">
+                                                    <div class="table-responsive">
                                                		<table cellpadding="3" cellspacing="3" width="100%">
                                                     <tr>
                                                     	<td colspan="2"></td>
@@ -451,6 +458,7 @@
                                                     </tr>
                                                     
                                                     </table>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

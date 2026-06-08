@@ -10,6 +10,61 @@
     <link href="<?php echo base_url(); ?>public/css/AdminLTE.css" rel="stylesheet" type="text/css" />
     <style>
         :root { --danger:#dd4b39; --warning:#f39c12; --success:#00a65a; --shadow:0 2px 10px rgba(0,0,0,0.09); --radius:8px; }
+
+        .theme-dark {
+            --primary: var(--hms-primary);
+            --success: var(--hms-success);
+            --warning: var(--hms-warning);
+            --danger:  var(--hms-danger);
+            --shadow:  0 2px 10px rgba(0,0,0,0.4);
+        }
+
+        /* Dark mode overrides */
+        .theme-dark .rc-stat {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rc-stat .rl {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .rc-filter {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rc-filter input, .theme-dark .rc-filter select {
+            background-color: var(--hms-input-bg, rgba(255,255,255,0.05)) !important;
+            color: var(--hms-input-text, rgba(255,255,255,0.90)) !important;
+            border-color: var(--hms-input-border, rgba(255,255,255,0.14)) !important;
+        }
+        .theme-dark .rc-table-wrap {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .rc-table-hdr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rc-table-hdr h4 {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rc-table {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rc-table thead th {
+            background: var(--table-head-bg, #1e293b) !important;
+            border-bottom-color: var(--hms-border-strong, rgba(255,255,255,0.16)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rc-table tbody tr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            background: transparent;
+        }
+        .theme-dark .rc-table tbody tr:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+
         .rc-stat { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; display:flex; align-items:center; gap:14px; border-left:4px solid #ddd; margin-bottom:16px; }
         .rc-stat .rn { font-size:28px; font-weight:700; line-height:1; }
         .rc-stat .rl { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-top:3px; }

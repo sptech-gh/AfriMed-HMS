@@ -162,9 +162,10 @@
 									height: 300px;
 									text-align: left;
 									overflow: auto">
-                                           <table class="table table-hover table-striped">
-                                           <thead>
-                                           		<tr>
+                                            <div class="table-responsive">
+                                            <table class="table table-hover table-striped">
+                                            <thead>
+                                            		<tr>
                                                 	<th>Date & Time</th>
                                                     <th>Particulars</th>
                                                     <th>I/V Fluids(ml)</th>
@@ -174,11 +175,11 @@
                                                     <th>Prepared By</th>
                                                     <th></th>
                                                 </tr>
-                                           </thead>
-                                           <tbody>
-                                           <?php foreach($getIntake as $getIntake){?>
-                                           <tr>
-                                           		<td><?php echo date("M d, Y h:i:s A",strtotime($getIntake->dDateTime));?></td>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach($getIntake as $getIntake){?>
+                                            <tr>
+                                            		<td><?php echo date("M d, Y h:i:s A",strtotime($getIntake->dDateTime));?></td>
                                                 <td><?php echo $getIntake->particulars?></td>
                                                 <td><?php echo $getIntake->IV_fluids?></td>
                                                 <td><?php echo $getIntake->oral?></td>
@@ -199,10 +200,11 @@
                                                 </form>
                                                 <?php }}?>
                                                 </td>
-                                           </tr>
-                                           <?php }?> 
-                                           </tbody>
-                                           </table>
+                                            </tr>
+                                            <?php }?> 
+                                            </tbody>
+                                            </table>
+                                            </div>
                                            </div>
                                            
                                            <hr>
@@ -220,9 +222,10 @@
 									height: 300px;
 									text-align: left;
 									overflow: auto">
-                                           <table class="table table-hover table-striped">
-                                           <thead>
-                                           		<tr>
+                                            <div class="table-responsive">
+                                            <table class="table table-hover table-striped">
+                                            <thead>
+                                            		<tr>
                                                 	<th>Date & Time</th>
                                                     <th>Urine(ml)</th>
                                                     <th>Feaces(ml)</th>
@@ -231,11 +234,11 @@
                                                     <th>Prepared By</th>
                                                     <th></th>
                                                 </tr>
-                                           </thead>
-                                           <tbody>
-                                           <?php foreach($getOutput as $getOutput){?>
-                                           <tr>
-                                           		<td><?php echo date("M d, Y h:i:s A",strtotime($getOutput->dDateTime));?></td>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach($getOutput as $getOutput){?>
+                                            <tr>
+                                            		<td><?php echo date("M d, Y h:i:s A",strtotime($getOutput->dDateTime));?></td>
                                                 <td><?php echo $getOutput->urine?></td>
                                                 <td><?php echo $getOutput->feaces?></td>
                                                 <td><?php echo $getOutput->respitation?></td>
@@ -259,6 +262,7 @@
                                            <?php }?> 
                                            </tbody>
                                            </table>
+                                            </div>
                                            </div>
                                         </div>
                            			</div>
@@ -312,6 +316,7 @@
                                             <h4 class="modal-title" id="myModalLabel">Intake Record</h4>
                                         </div>
                                         <div class="modal-body">
+                                        <div class="table-responsive">
                                         <table class="table table-hover">
                                         <tbody>
                                         <tr>
@@ -357,6 +362,7 @@
                                         </tbody>
                                         </table>
                                         </div>
+                                        </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                                             <button type="submit" class="btn btn-primary" name="btnSave">Save</button>
@@ -390,6 +396,7 @@
                                             <h4 class="modal-title" id="myModalLabel">Output Record</h4>
                                         </div>
                                         <div class="modal-body">
+                                        <div class="table-responsive">
                                         <table class="table table-hover">
                                         <tbody>
                                         <tr>
@@ -430,6 +437,7 @@
                                         </tr>
                                         </tbody>
                                         </table>
+                                        </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

@@ -45,6 +45,40 @@
         .variance-neg { color:var(--danger);  font-weight:700; }
         .rc-nav { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
         .rc-nav a { flex:1; min-width:160px; }
+
+        /* Dark Mode Overrides */
+        .theme-dark {
+            --danger: var(--hms-danger) !important;
+            --warning: var(--hms-warning) !important;
+            --success: var(--hms-success) !important;
+            --primary: var(--hms-primary) !important;
+            --shadow: 0 2px 10px rgba(0,0,0,0.40) !important;
+        }
+        .theme-dark .rc-stat { background: var(--hms-surface) !important; border-left-color: var(--hms-border) !important; }
+        .theme-dark .rc-stat .rl { color: var(--hms-text-muted) !important; }
+        .theme-dark .rc-stat .rn { color: var(--hms-text) !important; }
+        .theme-dark .rc-stat .ri { color: var(--hms-text-muted) !important; }
+        .theme-dark .rc-filter { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; box-shadow: var(--hms-shadow) !important; }
+        .theme-dark .rc-filter input, .theme-dark .rc-filter select { background-color: var(--hms-input-bg) !important; color: var(--hms-input-text) !important; border-color: var(--hms-input-border) !important; }
+        .theme-dark .rc-filter input:focus, .theme-dark .rc-filter select:focus { border-color: var(--hms-input-focus-border) !important; }
+        .theme-dark .rc-table-wrap { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; box-shadow: var(--hms-shadow) !important; }
+        .theme-dark .rc-table-hdr { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .rc-table thead th { background: var(--table-head-bg) !important; color: var(--hms-text) !important; border-bottom-color: var(--hms-border-strong) !important; }
+        .theme-dark .rc-table tbody tr { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .rc-table tbody tr:hover { background: var(--table-row-hover-bg) !important; }
+        .theme-dark .rc-table tbody tr td { color: var(--hms-text) !important; }
+        .theme-dark .rc-badge.PENDING  { background: rgba(245,158,11,0.15) !important; color: var(--hms-warning) !important; }
+        .theme-dark .rc-badge.APPROVED { background: var(--hms-success-bg) !important; color: var(--hms-success) !important; }
+        .theme-dark .rc-badge.REJECTED { background: var(--hms-danger-bg) !important; color: var(--hms-danger) !important; }
+        .theme-dark .rc-badge.DRAFT    { background: rgba(255,255,255,0.08) !important; color: var(--hms-text-muted) !important; }
+        .theme-dark .rc-badge.default  { background: rgba(255,255,255,0.08) !important; color: var(--hms-text-muted) !important; }
+
+        /* Modal styling */
+        .theme-dark .modal-content { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; color: var(--hms-text) !important; }
+        .theme-dark .modal-header { border-bottom: 1px solid var(--hms-border) !important; }
+        .theme-dark .modal-footer { border-top: 1px solid var(--hms-border) !important; background: var(--hms-surface-2) !important; }
+        .theme-dark .modal-body { background: var(--hms-surface) !important; }
+        .theme-dark .modal-header .modal-title { color: #fff !important; }
     </style>
 </head>
 <body class="skin-blue">
@@ -186,7 +220,7 @@
                                     <span class="text-muted">—</span>
                                 <?php endif; ?>
                                 <?php if ($discr > 0): ?>
-                                    <br><span style="background:#fff3cd;color:#856404;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;">
+                                    <br><span style="background:var(--hms-warning-bg, #fff3cd);color:var(--hms-warning, #856404);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;">
                                         <?php echo $discr; ?> issue<?php echo $discr !== 1 ? 's' : ''; ?>
                                     </span>
                                 <?php endif; ?>

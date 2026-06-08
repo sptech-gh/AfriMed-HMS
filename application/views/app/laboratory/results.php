@@ -140,6 +140,7 @@
                                                 
                                                 
                                             	<div class="tab-pane active" id="tab_1">
+                                                    <div class="table-responsive">
                                                 	<table cellpadding="3" cellspacing="3" width="100%">
                                                     <tr>
                                                     	<td colspan="2">Required fields = <font color="#FF0000">*</font></td>
@@ -302,6 +303,7 @@
                                                     </tr>
                                                     
                                                     </table>
+                                                    </div>
                                                 </div>
                                                 <div class="tab-pane" id="tab_structured">
 													<?php if ($moduleBase === 'sonography'): ?>
@@ -311,7 +313,7 @@
 														<i class="fa fa-heartbeat"></i> <strong>Structured Sonography Report:</strong>
 														Complete the relevant sections below. Leave unused sections blank.
 													</div>
-													<div id="sono-structured-form">
+													<div id="sono-structured-form" class="table-responsive">
 													<table class="table table-bordered" style="font-size:13px;">
 														<tbody>
 														<tr class="active"><td colspan="2"><strong><i class="fa fa-stethoscope"></i> Clinical Indication</strong></td></tr>

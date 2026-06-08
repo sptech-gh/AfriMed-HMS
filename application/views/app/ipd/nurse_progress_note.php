@@ -153,20 +153,21 @@
                                            <?php }}?>
                                            <a href="<?php echo base_url()?>app/ipd_print/print_nurse_note/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
                                            <a href="<?php echo base_url()?>app/ipd_print/pdf_nurse_note/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-success" target="_blank"><i class="fa fa-print"></i> PDF</a>
-                                           <table class="table table-hover table-striped">
-                                           <thead>
-                                           		<tr>
+                                            <div class="table-responsive">
+                                            <table class="table table-hover table-striped">
+                                            <thead>
+                                            		<tr>
                                                 	<th>Date Time</th>
                                                     <th>Focus</th>
                                                     <th>Notes</th>
                                                     <th>Prepared by</th>
                                                     <th></th>
                                                 </tr>
-                                           </thead>
-                                           <tbody>
-                                           <?php foreach($getNurseProgressNote as $rows){?>
-                                           <tr>
-                                           		<td><?php echo date("M d, Y h:i:s A",strtotime($rows->dDateTime));?></td>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach($getNurseProgressNote as $rows){?>
+                                            <tr>
+                                            		<td><?php echo date("M d, Y h:i:s A",strtotime($rows->dDateTime));?></td>
                                                 <td><?php echo $rows->focus?></td>
                                                 <td><?php echo $rows->notes?></td>
                                                 <td><?php 
@@ -184,10 +185,11 @@
                                                 </form>
                                                 <?php }}?>
                                                 </td>
-                                           </tr>
-                                           <?php }?> 
-                                           </tbody>
-                                           </table>
+                                            </tr>
+                                            <?php }?> 
+                                            </tbody>
+                                            </table>
+                                            </div>
                                             
                                             <br><br><br><br><br><br><br>
                                             <br><br><br><br><br><br><br>
@@ -271,6 +273,7 @@ xmlhttp.send();
 }
 </script>
                                         <div class="modal-body">
+                                        <div class="table-responsive">
                                         <table class="table table-hover">
                                         <tbody>
                                         <tr>
@@ -303,6 +306,7 @@ xmlhttp.send();
                                         </tr>
                                         </tbody>
                                         </table>
+                                        </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

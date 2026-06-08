@@ -124,6 +124,7 @@
                             <h3 class="box-title"><i class="fa fa-bar-chart"></i> Revenue by Payment Type</h3>
                         </div>
                         <div class="box-body">
+                            <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
@@ -155,6 +156,7 @@
                                     </tr>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -165,6 +167,7 @@
                             <h3 class="box-title"><i class="fa fa-pie-chart"></i> Revenue by Department</h3>
                         </div>
                         <div class="box-body">
+                            <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
@@ -200,6 +203,7 @@
                                     <?php endif; ?>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -213,6 +217,7 @@
                             <h3 class="box-title"><i class="fa fa-list"></i> Recent Transactions</h3>
                         </div>
                         <div class="box-body">
+                            <div class="table-responsive">
                             <table id="transactionsTable" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
@@ -257,6 +262,7 @@
                                     <?php endif; ?>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     </div>
                 </div>

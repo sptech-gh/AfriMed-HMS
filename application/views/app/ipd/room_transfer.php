@@ -154,6 +154,7 @@
                                            <?php }}?>
                                            <a href="<?php echo base_url()?>app/ipd_print/print_room_transfer/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
                                            <a href="<?php echo base_url()?>app/ipd_print/pdf_room_transfer/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-success" target="_blank"><i class="fa fa-print"></i> PDF</a>
+                                           <div class="table-responsive">
                                            <table class="table table-hover table-striped">
                                            <thead>
                                            		<tr>
@@ -196,6 +197,7 @@
                                            <?php }?> 
                                            </tbody>
                                            </table>
+                                           </div>
                                             
                                             <br><br><br><br><br><br><br>
                                             <br><br><br><br><br><br><br>
@@ -327,6 +329,7 @@ xmlhttp3.send();
 }
 </script>
                                         <div class="modal-body">
+                                        <div class="table-responsive">
                                         <table class="table table-hover">
                                         <tbody>
                                         <tr>
@@ -385,6 +388,7 @@ xmlhttp3.send();
                                         </tr>
                                         </tbody>
                                         </table>
+                                        </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

@@ -81,6 +81,42 @@
         .sh-filter-btn:hover { background:#e9ecef; }
         .sh-filter-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
         .table td { vertical-align:middle !important; }
+
+        /* Dark Mode Overrides */
+        .theme-dark {
+            --danger: var(--hms-danger) !important;
+            --warning: var(--hms-warning) !important;
+            --success: var(--hms-success) !important;
+            --primary: var(--hms-primary) !important;
+            --purple: #c084fc !important;
+            --shadow: 0 2px 10px rgba(0,0,0,0.40) !important;
+        }
+        .theme-dark .sh-drug-card { background: var(--hms-surface) !important; border-color: var(--hms-primary) !important; }
+        .theme-dark .sh-drug-name { color: var(--hms-text) !important; }
+        .theme-dark .sh-drug-meta { color: var(--hms-text-muted) !important; }
+        .theme-dark .sh-stat .sh-lbl { color: var(--hms-text-muted) !important; }
+        .theme-dark .sh-divider { background: var(--hms-border) !important; }
+        .theme-dark .sh-table-wrap { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; box-shadow: var(--hms-shadow) !important; }
+        .theme-dark .sh-table-header { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .sh-table thead th { background: var(--table-head-bg) !important; color: var(--hms-text) !important; border-bottom-color: var(--hms-border-strong) !important; }
+        .theme-dark .sh-table tbody tr { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .sh-table tbody tr:hover { background: var(--table-row-hover-bg) !important; }
+        .theme-dark .sh-table tbody tr td { color: var(--hms-text) !important; }
+        .theme-dark .sh-table tbody tr.row-in { border-left-color: var(--hms-success) !important; }
+        .theme-dark .sh-table tbody tr.row-out { border-left-color: var(--hms-danger) !important; }
+        .theme-dark .sh-table tbody tr.row-adj { border-left-color: var(--hms-warning) !important; }
+        .theme-dark .sh-type.DISPENSE { background: rgba(59,158,221,0.15) !important; color: var(--hms-primary) !important; }
+        .theme-dark .sh-type.RESTOCK { background: var(--hms-success-bg) !important; color: var(--hms-success) !important; }
+        .theme-dark .sh-type.WRITE_OFF { background: var(--hms-danger-bg) !important; color: var(--hms-danger) !important; }
+        .theme-dark .sh-type.BATCH_IN { background: var(--hms-success-bg) !important; color: var(--hms-success) !important; }
+        .theme-dark .sh-type.ADJUSTMENT { background: rgba(245,158,11,0.15) !important; color: var(--hms-warning) !important; }
+        .theme-dark .sh-type.OTHER { background: rgba(255,255,255,0.08) !important; color: var(--hms-text-muted) !important; }
+        .theme-dark .sh-arrow { color: var(--hms-text-muted) !important; }
+        .theme-dark .sh-bar-wrap { background: rgba(255,255,255,0.08) !important; }
+        .theme-dark .sh-filter-bar { background: var(--hms-surface-2) !important; border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .sh-filter-btn { background: var(--hms-surface) !important; border-color: var(--hms-border) !important; color: var(--hms-text-muted) !important; }
+        .theme-dark .sh-filter-btn:hover { background: var(--table-row-hover-bg) !important; }
+        .theme-dark .sh-filter-btn.active { background: var(--hms-primary) !important; border-color: var(--hms-primary) !important; color: #fff !important; }
     </style>
 </head>
 <body class="skin-blue">
@@ -138,7 +174,7 @@
                             &nbsp;·&nbsp; Price: GHS <?php echo number_format((float)$drug->nPrice, 2); ?>
                             &nbsp;·&nbsp;
                             <?php if ($nhis): ?>
-                                <span style="color:#605ca8;font-weight:600;"><i class="fa fa-shield"></i> NHIS: GHS <?php echo number_format((float)$drug->nhis_price, 2); ?></span>
+                                <span style="color:var(--purple, #605ca8);font-weight:600;"><i class="fa fa-shield"></i> NHIS: GHS <?php echo number_format((float)$drug->nhis_price, 2); ?></span>
                             <?php else: ?>
                                 <span>Cash only</span>
                             <?php endif; ?>

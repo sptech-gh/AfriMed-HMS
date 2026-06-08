@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <?php
-        $enhCompanyName = (isset($companyInfo) && isset($companyInfo->company_name)) ? trim((string)$companyInfo->company_name) : 'Hebrew Medical Center';
-        $enhSiteTitle = (isset($companyInfo) && isset($companyInfo->site_title) && trim((string)$companyInfo->site_title) !== '') ? trim((string)$companyInfo->site_title) : $enhCompanyName;
+        $enhCompanyName = getFacilityName();
+        $enhSiteTitle = getFacilityName() . ' | ' . getPlatformName();
     ?>
-    <title><?php echo isset($page_title) ? htmlspecialchars($page_title) . ' - ' : ''; ?><?php echo htmlspecialchars($enhSiteTitle); ?></title>
+    <title><?php echo isset($page_title) ? htmlspecialchars($page_title) . ' - ' : ''; ?><?php echo htmlspecialchars(getFacilityName()); ?> | <?php echo getPlatformName(); ?></title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="<?php echo base_url()?>public/company_logo/<?php echo $companyInfo->logo?>">
+    <link rel="icon" type="image/png" href="<?php echo BrandingService::platformLogo(); ?>">
     
     <!-- Core CSS -->
     <link href="<?php echo base_url()?>public/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
@@ -21,6 +21,7 @@
     
     <!-- Enhanced UI/UX CSS -->
     <link href="<?php echo base_url();?>public/css/hms-enhanced.css" rel="stylesheet" type="text/css" />
+    <link href="<?php echo base_url();?>assets/css/hms-responsive.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css" />
     
     <!-- Select2 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
@@ -61,12 +62,9 @@
     
     <!-- Header -->
     <header class="header">
-        <a href="<?php echo base_url()?>app/dashboard" class="logo">
-            <div class="logo-pms">
-                <img src="<?php echo base_url()?>public/company_logo/<?php echo $companyInfo->logo?>" 
-                     alt="<?php echo $companyInfo->company_name?>" 
-                     height="45">
-            </div>
+        <a href="<?php echo base_url()?>app/dashboard" class="logo" style="display: flex; align-items: center; gap: 8px; justify-content: center; text-decoration: none;">
+            <img src="<?php echo getFacilityLogo(); ?>" alt="Logo" style="max-height: 32px; width: auto; border-radius: 4px;">
+            <span style="font-weight: bold; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff;"><?php echo getFacilityName(); ?></span>
         </a>
         
         <nav class="navbar navbar-static-top" role="navigation">
@@ -78,8 +76,11 @@
                 <span class="icon-bar"></span>
             </a>
             
-            <div class="logo2"> 
-                <?php echo $companyInfo->company_name?>
+            <div class="logo2" style="display: flex; align-items: center; gap: 10px; height: 50px; float: left; padding: 0 15px; line-height: 50px; color: #fff; font-size: 20px; font-weight: 500;">
+                <span class="facility-header-name" style="font-weight: 700; font-size: 18px; color: #ffffff;"><?php echo getFacilityName(); ?></span>
+                <span class="platform-power-badge" style="font-size: 10px; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 20px; line-height: 1.4; color: rgba(255,255,255,0.85); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;">
+                    Powered by Reddy HMS
+                </span>
             </div>
             
             <div class="navbar-right">

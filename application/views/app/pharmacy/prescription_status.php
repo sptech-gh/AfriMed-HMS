@@ -62,6 +62,31 @@
         .ps-nav a { flex:1; min-width:160px; }
         .empty-state { text-align:center; padding:36px; color:#aaa; }
         .empty-state i { font-size:36px; display:block; margin-bottom:10px; }
+
+        /* Dark Mode Overrides */
+        .theme-dark .ps-stat { background: var(--hms-surface) !important; }
+        .theme-dark .ps-stat .ps-lbl { color: var(--hms-text-muted) !important; }
+        .theme-dark .ps-table-wrap { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; box-shadow: var(--hms-shadow) !important; }
+        .theme-dark .ps-table-header { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .ps-table thead th { background: var(--table-head-bg) !important; color: var(--hms-text) !important; border-bottom-color: var(--hms-border-strong) !important; }
+        .theme-dark .ps-table tbody tr { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .ps-table tbody tr:hover { background: var(--table-row-hover-bg) !important; }
+        .theme-dark .ps-table tbody tr.locked-row { border-left-color: var(--hms-danger) !important; }
+        .theme-dark .ps-table tbody tr.hold-row { border-left-color: var(--hms-warning) !important; }
+        .theme-dark .ps-legend { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; box-shadow: var(--hms-shadow) !important; }
+        .theme-dark .ps-legend-header { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .ps-flow { background: var(--hms-surface-2) !important; border: 1px solid var(--hms-border) !important; color: var(--hms-text) !important; }
+        .theme-dark .empty-state { color: var(--hms-text-muted) !important; }
+
+        /* Status badges in dark mode */
+        .theme-dark .ps-badge.PENDING     { background: rgba(245,158,11,0.15) !important; color: var(--hms-warning) !important; }
+        .theme-dark .ps-badge.VERIFIED    { background: rgba(59,158,221,0.15) !important; color: var(--hms-primary) !important; }
+        .theme-dark .ps-badge.IN_PROGRESS { background: rgba(34,211,238,0.15) !important; color: var(--hms-info) !important; }
+        .theme-dark .ps-badge.PARTIAL     { background: rgba(168,85,247,0.15) !important; color: #c084fc !important; }
+        .theme-dark .ps-badge.DISPENSED   { background: var(--hms-success-bg) !important; color: var(--hms-success) !important; }
+        .theme-dark .ps-badge.CANCELLED   { background: var(--hms-danger-bg) !important; color: var(--hms-danger) !important; }
+        .theme-dark .ps-badge.ON_HOLD     { background: var(--hms-danger-bg) !important; color: var(--hms-danger) !important; }
+        .theme-dark .ps-badge.EXPIRED     { background: rgba(255,255,255,0.08) !important; color: var(--hms-text-muted) !important; }
     </style>
 </head>
 <body class="skin-blue">
@@ -131,7 +156,7 @@
             <div class="ps-table-wrap">
                 <div class="ps-table-header">
                     <h4><i class="fa fa-lock text-danger"></i> Currently Locked Prescriptions
-                        <span style="background:#f8d7da;color:#721c24;border-radius:12px;padding:2px 9px;font-size:12px;margin-left:6px;"><?php echo count($locked); ?></span>
+                        <span style="background:var(--hms-danger-bg, #f8d7da);color:var(--hms-danger, #721c24);border-radius:12px;padding:2px 9px;font-size:12px;margin-left:6px;"><?php echo count($locked); ?></span>
                     </h4>
                     <small class="text-muted">Locks prevent concurrent edits</small>
                 </div>
@@ -184,7 +209,7 @@
             <div class="ps-table-wrap">
                 <div class="ps-table-header">
                     <h4><i class="fa fa-pause text-warning"></i> Prescriptions On Hold
-                        <span style="background:#fff3cd;color:#856404;border-radius:12px;padding:2px 9px;font-size:12px;margin-left:6px;"><?php echo count($on_hold); ?></span>
+                        <span style="background:var(--hms-warning-bg, #fff3cd);color:var(--hms-warning, #856404);border-radius:12px;padding:2px 9px;font-size:12px;margin-left:6px;"><?php echo count($on_hold); ?></span>
                     </h4>
                     <small class="text-muted">Resume to restore to PENDING</small>
                 </div>

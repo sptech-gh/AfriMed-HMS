@@ -80,6 +80,7 @@
                                     
                                     <div class="tab-content">
                                     	<div class="tab-pane active" id="tab_1">
+                                            <div class="table-responsive">
                                         	<table cellpadding="3" cellspacing="3" align="center" width="100%">
                                 	<tr>
                                 		<td width="15%">Patient No.</td>
@@ -133,8 +134,10 @@
                                         <td><?php echo $patientInfo->blood_group?></td>
                                     </tr>
                                 	</table>
+                                            </div>
                                         </div>
                                         <div class="tab-pane" id="tab_2">
+                                            <div class="table-responsive">
                                         	<table cellpadding="3" cellspacing="3" align="center" width="100%">
                                      <tr>
                                      	<td width="21%">Phone No (Home)</td>
@@ -164,8 +167,10 @@
                                         <td><?php echo $patientInfo->emergency_phone_number ? htmlspecialchars($patientInfo->emergency_phone_number) : '<span style="color:#999;">—</span>'; ?></td>
                                      </tr>
                                      </table>
+                                            </div>
                                         </div>
                                         <div class="tab-pane" id="tab_3">
+                                            <div class="table-responsive">
                                         	<table cellpadding="3" cellspacing="3" align="center" width="100%">
                                      <?php
                                         $nhis_num = isset($patientInfo->nhis_number) ? $patientInfo->nhis_number : '';
@@ -210,8 +215,9 @@
                                      	<td>Patient Identifiers</td>
                                         <td><?php echo $patientInfo->id_identifiers?></td>
                                      </tr>
-                                     </table>
-                                        </div>
+                                      </table>
+                                      </div>
+                                         </div>
                                         <div class="tab-pane" id="tab_4">
                                         	<iframe width="100%" frameborder="0" height="400" src="<?php echo base_url()?>app/patient/attachment/<?php echo $patientInfo->patient_no?>"></iframe>
                                         </div>

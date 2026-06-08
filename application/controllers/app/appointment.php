@@ -173,11 +173,10 @@ class Appointment extends General{
 		
 		foreach ($patient as $patient)
 		{	
-			if(date('M d, Y H:i:s',strtotime($patient->dateVisit)) == "Jan 01, 1970 08:00:00")
-			{
+			if (empty($patient->dateVisit) || $patient->dateVisit === '0000-00-00 00:00:00' || strtotime($patient->dateVisit) <= 0) {
 				$dateVisit = "-";
-			}else{
-				$dateVisit = date('M d, Y',strtotime($patient->dateVisit));
+			} else {
+				$dateVisit = date('M d, Y', strtotime($patient->dateVisit));
 			}
 
 			if($patient->appointmentStatus == "D")

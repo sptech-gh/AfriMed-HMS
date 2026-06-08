@@ -10,39 +10,74 @@
     <link href="<?php echo base_url();?>public/css/ionicons.min.css" rel="stylesheet" type="text/css" />
     <link href="<?php echo base_url();?>public/css/AdminLTE.css" rel="stylesheet" type="text/css" />
     <style>
-        :root{--ph-bg:#f4f6f9;--ph-card:#fff;--ph-border:#e3e6ec;--ph-shadow:0 2px 8px rgba(0,0,0,.07);--ph-radius:10px;--ph-green:#27ae60;--ph-yellow:#f39c12;--ph-blue:#2980b9;--ph-red:#e74c3c;--ph-gray:#95a5a6;}
+        /* THEME VARIABLES - DEFAULT / LIGHT */
+        :root, .theme-light {
+            --ph-bg: var(--hms-bg, #f4f6f9);
+            --ph-card: var(--hms-surface, #ffffff);
+            --ph-border: var(--hms-border, #e3e6ec);
+            --ph-shadow: var(--hms-shadow, 0 2px 8px rgba(0,0,0,.07));
+            --ph-radius: 10px;
+            --ph-green: #27ae60;
+            --ph-yellow: #f39c12;
+            --ph-blue: #2980b9;
+            --ph-red: #e74c3c;
+            --ph-gray: #95a5a6;
+            --ph-text: var(--hms-text, #2c3e50);
+            --ph-text-muted: var(--hms-text-muted, #7f8c8d);
+            --ph-surface-2: var(--hms-surface-2, #f8f9fb);
+            --ph-input-bg: var(--hms-input-bg, #ffffff);
+            --ph-input-text: var(--hms-input-text, #111827);
+            --ph-input-border: var(--hms-input-border, #dce1e8);
+            --ph-avatar-border: #ecf0f1;
+        }
+
+        /* THEME VARIABLES - DARK */
+        .theme-dark {
+            --ph-bg: var(--hms-bg, #0b1220);
+            --ph-card: var(--hms-surface, #0f172a);
+            --ph-border: var(--hms-border, rgba(255,255,255,0.10));
+            --ph-shadow: var(--hms-shadow, 0 4px 16px rgba(0,0,0,.40));
+            --ph-text: var(--hms-text, rgba(255,255,255,0.88));
+            --ph-text-muted: var(--hms-text-muted, rgba(255,255,255,0.60));
+            --ph-surface-2: var(--hms-surface-2, rgba(255,255,255,0.03));
+            --ph-input-bg: var(--hms-input-bg, rgba(255,255,255,0.05));
+            --ph-input-text: var(--hms-input-text, rgba(255,255,255,0.90));
+            --ph-input-border: var(--hms-input-border, rgba(255,255,255,0.14));
+            --ph-avatar-border: rgba(255,255,255,0.15);
+        }
+
         .ph-page{background:var(--ph-bg);min-height:100vh;}
 
-        .ph-summary{background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:20px 24px;margin-bottom:20px;border-left:4px solid var(--ph-blue);}
-        .ph-summary .ph-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #ecf0f1;margin-right:16px;}
-        .ph-summary .ph-patient-name{font-size:20px;font-weight:700;color:#2c3e50;margin:0;}
-        .ph-summary .ph-patient-id{font-size:13px;color:var(--ph-gray);margin-top:2px;}
-        .ph-stat-card{background:#f8f9fb;border-radius:8px;padding:12px 16px;text-align:center;border:1px solid var(--ph-border);}
-        .ph-stat-card .ph-stat-val{font-size:22px;font-weight:700;color:#2c3e50;}
-        .ph-stat-card .ph-stat-lbl{font-size:11px;color:var(--ph-gray);text-transform:uppercase;letter-spacing:.5px;}
+        .ph-summary{background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:20px 24px;margin-bottom:20px;border-left:4px solid var(--ph-blue);color:var(--ph-text);border-top:1px solid var(--ph-border);border-right:1px solid var(--ph-border);border-bottom:1px solid var(--ph-border);}
+        .ph-summary .ph-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid var(--ph-avatar-border);margin-right:16px;}
+        .ph-summary .ph-patient-name{font-size:20px;font-weight:700;color:var(--ph-text);margin:0;}
+        .ph-summary .ph-patient-id{font-size:13px;color:var(--ph-text-muted);margin-top:2px;}
+        .ph-stat-card{background:var(--ph-surface-2);border-radius:8px;padding:12px 16px;text-align:center;border:1px solid var(--ph-border);color:var(--ph-text);}
+        .ph-stat-card .ph-stat-val{font-size:22px;font-weight:700;color:var(--ph-text);}
+        .ph-stat-card .ph-stat-lbl{font-size:11px;color:var(--ph-text-muted);text-transform:uppercase;letter-spacing:.5px;}
         .ph-conditions{margin-top:8px;}
         .ph-conditions .label{font-size:11px;margin-right:4px;margin-bottom:4px;display:inline-block;font-weight:500;}
 
-        .ph-filter-bar{background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:14px 18px;margin-bottom:18px;}
-        .ph-filter-bar .form-control{font-size:13px;border-radius:6px;border:1px solid #dce1e8;}
-        .ph-filter-bar label{font-size:11px;color:var(--ph-gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+        .ph-filter-bar{background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:14px 18px;margin-bottom:18px;color:var(--ph-text);border:1px solid var(--ph-border);}
+        .ph-filter-bar .form-control{font-size:13px;border-radius:6px;border:1px solid var(--ph-input-border);background-color:var(--ph-input-bg);color:var(--ph-input-text);}
+        .ph-filter-bar label{font-size:11px;color:var(--ph-text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
 
-        .ph-actions{margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
-        .ph-actions .ph-count{font-size:13px;color:var(--ph-gray);}
+        .ph-actions{margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;color:var(--ph-text);}
+        .ph-actions .ph-count{font-size:13px;color:var(--ph-text-muted);}
 
         .ph-tl{position:relative;padding-left:28px;}
-        .ph-tl::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:#dce1e8;border-radius:1px;}
+        .ph-tl::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--ph-border);border-radius:1px;}
 
-        .ph-card{background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:18px 20px;margin-bottom:14px;position:relative;transition:box-shadow .2s ease,transform .15s ease;cursor:default;border:1px solid var(--ph-border);}
-        .ph-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-1px);}
+        .ph-card{background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:18px 20px;margin-bottom:14px;position:relative;transition:box-shadow .2s ease,transform .15s ease;cursor:default;border:1px solid var(--ph-border);color:var(--ph-text);}
+        .ph-card:hover{box-shadow:var(--ph-shadow);transform:translateY(-1px);}
         .ph-card::before{content:'';position:absolute;left:-22px;top:24px;width:12px;height:12px;border-radius:50%;background:var(--ph-blue);border:2px solid var(--ph-card);z-index:1;}
         .ph-card.type-opd::before{background:var(--ph-blue);}
         .ph-card.type-ipd::before{background:var(--ph-green);}
 
         .ph-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;}
-        .ph-card-dt{font-size:15px;font-weight:600;color:#2c3e50;}
-        .ph-card-doc{font-size:13px;color:var(--ph-gray);margin-top:2px;}
-        .ph-card-reason{margin-top:6px;font-size:13px;color:#555;}
+        .ph-card-dt{font-size:15px;font-weight:600;color:var(--ph-text);}
+        .ph-card-doc{font-size:13px;color:var(--ph-text-muted);margin-top:2px;}
+        .ph-card-reason{margin-top:6px;font-size:13px;color:var(--ph-text);}
         .ph-badges{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;}
         .ph-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;}
         .ph-badge-vitals{background:var(--ph-blue);}
@@ -52,29 +87,43 @@
         .ph-badge-rx{background:var(--ph-red);}
         .ph-badge-billing{background:var(--ph-gray);}
         .ph-badge-encounter{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
-        .ph-badge-opd{background:#d6eaf8;color:var(--ph-blue);}
-        .ph-badge-ipd{background:#d5f5e3;color:var(--ph-green);}
+        .ph-badge-opd{background:var(--hms-info-bg, #d6eaf8);color:var(--hms-info, var(--ph-blue));}
+        .ph-badge-ipd{background:var(--hms-success-bg, #d5f5e3);color:var(--hms-success, var(--ph-green));}
         .ph-badge-status{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
-        .ph-status-complete{background:#d5f5e3;color:var(--ph-green);}
-        .ph-status-pending{background:#fef9e7;color:var(--ph-yellow);}
-        .ph-status-active{background:#d6eaf8;color:var(--ph-blue);}
+        .ph-status-complete{background:var(--hms-success-bg, #d5f5e3);color:var(--hms-success, var(--ph-green));}
+        .ph-status-pending{background:var(--hms-warning-bg, #fef9e7);color:var(--hms-warning, var(--ph-yellow));}
+        .ph-status-active{background:var(--hms-info-bg, #d6eaf8);color:var(--hms-info, var(--ph-blue));}
 
         .ph-toggle-btn{border:none;background:var(--ph-blue);color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;}
         .ph-toggle-btn:hover{background:#1a6fa0;}
         .ph-toggle-btn:focus{outline:none;}
 
-        .ph-details{margin-top:14px;border-top:1px solid var(--ph-border);padding-top:14px;display:none;}
-        .ph-details .nav-tabs{border-bottom:2px solid #ecf0f1;}
-        .ph-details .nav-tabs>li>a{font-size:12px;padding:8px 14px;border-radius:6px 6px 0 0;color:#7f8c8d;font-weight:600;}
-        .ph-details .nav-tabs>li.active>a{color:var(--ph-blue);border-bottom-color:var(--ph-blue);}
-        .ph-details .tab-content{padding:14px 4px;}
-        .ph-details .table{font-size:13px;}
-        .ph-details .table th{background:#f8f9fb;font-weight:600;font-size:12px;color:#555;}
+        .ph-details{margin-top:14px;border-top:1px solid var(--ph-border);padding-top:14px;display:none;color:var(--ph-text);}
+        .ph-details .nav-tabs{border-bottom:2px solid var(--ph-border); display: flex; flex-wrap: wrap; gap: 2px;}
+        .ph-details .nav-tabs>li{margin-bottom: -2px;}
+        .ph-details .nav-tabs>li>a{font-size:12px;padding:8px 14px;border-radius:6px 6px 0 0;color:var(--ph-text-muted) !important;font-weight:600; background: transparent; border: 1px solid transparent; transition: all 0.15s ease-in-out;}
+        .ph-details .nav-tabs>li>a:hover,
+        .ph-details .nav-tabs>li>a:focus {background-color: var(--ph-surface-2) !important; color: var(--ph-text) !important; border-color: var(--ph-border) var(--ph-border) transparent !important; text-decoration: none;}
+        .ph-details .nav-tabs>li.active>a,
+        .ph-details .nav-tabs>li.active>a:hover,
+        .ph-details .nav-tabs>li.active>a:focus {color:var(--ph-blue) !important;background-color:var(--ph-card) !important;border-left-color:var(--ph-border) !important;border-right-color:var(--ph-border) !important;border-top-color:var(--ph-border) !important;border-bottom-color:transparent !important;}
+        .ph-details .tab-content{padding:14px 4px;color:var(--ph-text);}
+        .ph-details .table{font-size:13px;color:var(--ph-text) !important;}
+        .ph-details .table th{background-color:var(--ph-surface-2) !important;font-weight:600;font-size:12px;color:var(--ph-text) !important;border-bottom-color:var(--ph-border);}
+        .ph-details .table td{border-top-color:var(--ph-border);color:var(--ph-text) !important;background-color:transparent !important;}
+        .ph-details .table-striped > tbody > tr:nth-of-type(odd) > td,
+        .ph-details .table-striped > tbody > tr:nth-of-type(odd) > th {
+            background-color: var(--ph-surface-2) !important;
+        }
+        .ph-details .table-striped > tbody > tr:nth-of-type(even) > td,
+        .ph-details .table-striped > tbody > tr:nth-of-type(even) > th {
+            background-color: transparent !important;
+        }
 
-        .ph-empty{color:var(--ph-gray);padding:30px;text-align:center;font-size:14px;}
+        .ph-empty{color:var(--ph-text-muted);padding:30px;text-align:center;font-size:14px;}
         .ph-loadmore{text-align:center;padding:10px 0;}
 
-        .ph-nurse-notice{background:#eaf6fd;border:1px solid #b8daff;border-radius:8px;padding:10px 16px;font-size:13px;color:#004085;margin-bottom:14px;}
+        .ph-nurse-notice{background:var(--hms-info-bg, #eaf6fd);border:1px solid var(--hms-info, #b8daff);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--hms-info, #004085);margin-bottom:14px;}
 
         @media(max-width:991px){.ph-tl{padding-left:18px;}.ph-card::before{left:-14px;width:10px;height:10px;}}
         @media(max-width:768px){.ph-tl{padding-left:0;}.ph-tl::before{display:none;}.ph-card::before{display:none;}.ph-summary .row>[class^="col-"]{margin-bottom:10px;}}
@@ -196,9 +245,10 @@
                 <div class="row" style="margin-bottom:18px;">
                     <!-- Latest Vitals -->
                     <div class="col-md-6">
-                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid var(--ph-blue);height:100%;">
-                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:#2c3e50;"><i class="fa fa-heartbeat" style="color:var(--ph-blue);"></i> Latest Vitals</h4>
+                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid var(--ph-blue);height:100%;border:1px solid var(--ph-border);">
+                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:var(--ph-text);"><i class="fa fa-heartbeat" style="color:var(--ph-blue);"></i> Latest Vitals</h4>
                             <?php if ($lv) { ?>
+                            <div class="table-responsive">
                             <table class="table table-condensed" style="font-size:13px;margin-bottom:0;">
                                 <tr>
                                     <td style="border-top:none;width:20%;"><strong>Date</strong></td>
@@ -225,6 +275,7 @@
                                     <td><?php echo htmlspecialchars(isset($lv['spo2']) ? $lv['spo2'] : '—'); ?>%</td>
                                 </tr>
                             </table>
+                            </div>
                             <?php } else { ?>
                             <p style="color:var(--ph-gray);font-size:13px;margin:0;">No vitals recorded.</p>
                             <?php } ?>
@@ -232,8 +283,8 @@
                     </div>
                     <!-- Allergies & Warnings -->
                     <div class="col-md-6">
-                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid var(--ph-red);height:100%;">
-                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:#2c3e50;"><i class="fa fa-exclamation-triangle" style="color:var(--ph-red);"></i> Allergies &amp; Warnings</h4>
+                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid var(--ph-red);height:100%;border:1px solid var(--ph-border);">
+                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:var(--ph-text);"><i class="fa fa-exclamation-triangle" style="color:var(--ph-red);"></i> Allergies &amp; Warnings</h4>
                             <?php
                             $hasAllergies = !empty($as['allergies']);
                             $hasWarnings = !empty($as['warnings']);
@@ -265,9 +316,10 @@
                 <div class="row" style="margin-bottom:18px;">
                     <!-- Active Medications -->
                     <div class="col-md-6">
-                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid var(--ph-red);height:100%;">
-                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:#2c3e50;"><i class="fa fa-medkit" style="color:var(--ph-red);"></i> Recent Medications</h4>
+                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid var(--ph-red);height:100%;border:1px solid var(--ph-border);">
+                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:var(--ph-text);"><i class="fa fa-medkit" style="color:var(--ph-red);"></i> Recent Medications</h4>
                             <?php if (!empty($aMeds)) { ?>
+                            <div class="table-responsive">
                             <table class="table table-condensed table-striped" style="font-size:12px;margin-bottom:0;">
                                 <thead><tr><th>Drug</th><th>Dosage</th><th>Days</th><th>Date</th></tr></thead>
                                 <tbody>
@@ -281,6 +333,7 @@
                                 <?php } ?>
                                 </tbody>
                             </table>
+                            </div>
                             <?php } else { ?>
                             <p style="color:var(--ph-gray);font-size:13px;margin:0;">No recent medications.</p>
                             <?php } ?>
@@ -288,13 +341,14 @@
                     </div>
                     <!-- Medical History -->
                     <div class="col-md-6">
-                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid #8e44ad;height:100%;">
-                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:#2c3e50;"><i class="fa fa-book" style="color:#8e44ad;"></i> Medical History</h4>
+                        <div style="background:var(--ph-card);border-radius:var(--ph-radius);box-shadow:var(--ph-shadow);padding:16px 20px;border-left:4px solid #8e44ad;height:100%;border:1px solid var(--ph-border);">
+                            <h4 style="margin:0 0 10px 0;font-size:14px;font-weight:700;color:var(--ph-text);"><i class="fa fa-book" style="color:#8e44ad;"></i> Medical History</h4>
                             <?php
                             $hasMH = false;
                             foreach ($mh as $v) { if (trim((string)$v) !== '') { $hasMH = true; break; } }
                             ?>
                             <?php if ($hasMH) { ?>
+                            <div class="table-responsive">
                             <table class="table table-condensed" style="font-size:13px;margin-bottom:0;">
                                 <?php if (isset($mh['past_medical_history']) && $mh['past_medical_history'] !== '') { ?>
                                 <tr><td style="width:35%;border-top:none;"><strong>Past Medical</strong></td><td style="border-top:none;"><?php echo htmlspecialchars($mh['past_medical_history']); ?></td></tr>
@@ -309,6 +363,7 @@
                                 <tr><td><strong>Personal History</strong></td><td><?php echo htmlspecialchars($mh['personal_history']); ?></td></tr>
                                 <?php } ?>
                             </table>
+                            </div>
                             <?php } else { ?>
                             <p style="color:var(--ph-gray);font-size:13px;margin:0;">No medical history recorded.</p>
                             <?php } ?>
@@ -473,31 +528,31 @@
 
             function tblVitals(){
                 if(!vitals.length) return '<div class="ph-empty">No vitals recorded.</div>';
-                var h='<table class="table table-condensed table-striped"><thead><tr><th>Date/Time</th><th>Pulse</th><th>Temp (&deg;C)</th><th>BP (mmHg)</th><th>Resp</th><th>Wt (kg)</th><th>Ht (cm)</th></tr></thead><tbody>';
+                var h='<div class="table-responsive"><table class="table table-condensed table-striped"><thead><tr><th>Date/Time</th><th>Pulse</th><th>Temp (&deg;C)</th><th>BP (mmHg)</th><th>Resp</th><th>Wt (kg)</th><th>Ht (cm)</th></tr></thead><tbody>';
                 for(var i=0;i<vitals.length;i++){
                     var r=vitals[i];
                     h+='<tr><td>'+esc(r.dDateTime||r.dDate||'')+'</td><td>'+esc(r.pulse_rate||'')+'</td><td>'+esc(r.temperature||'')+'</td><td>'+esc(r.bp||'')+'</td><td>'+esc(r.respiration||'')+'</td><td>'+esc(r.weight||'')+'</td><td>'+esc(r.height||'')+'</td></tr>';
                 }
-                return h+'</tbody></table>';
+                return h+'</tbody></table></div>';
             }
             function tblDx(){
                 if(!fa) return '<div class="ph-nurse-notice"><i class="fa fa-lock"></i> Restricted to doctors.</div>';
                 if(!dx.length) return '<div class="ph-empty">No diagnoses recorded.</div>';
-                var h='<table class="table table-condensed table-striped"><thead><tr><th>Date</th><th>Diagnosis</th><th>Details</th><th>Remarks</th></tr></thead><tbody>';
+                var h='<div class="table-responsive"><table class="table table-condensed table-striped"><thead><tr><th>Date</th><th>Diagnosis</th><th>Details</th><th>Remarks</th></tr></thead><tbody>';
                 for(var i=0;i<dx.length;i++){var r=dx[i];h+='<tr><td>'+esc(r.dDate||'')+'</td><td><strong>'+esc(r.diagnosis_name||'')+'</strong></td><td>'+esc(r.diagnosis_text||'')+'</td><td>'+esc(r.remarks||'')+'</td></tr>';}
-                return h+'</tbody></table>';
+                return h+'</tbody></table></div>';
             }
             function tblNotes(){
                 if(!fa) return '<div class="ph-nurse-notice"><i class="fa fa-lock"></i> Restricted to doctors.</div>';
                 if(!notes.length) return '<div class="ph-empty">No consultation notes.</div>';
                 var h='';
-                for(var i=0;i<notes.length;i++){var r=notes[i];h+='<div style="background:#f8f9fb;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid #ecf0f1;"><div style="font-size:12px;color:#95a5a6;margin-bottom:6px;"><i class="fa fa-clock-o"></i> '+esc(r.dDateTime||'')+'</div><div><strong>Progress:</strong> '+esc(r.progress||'')+'</div><div><strong>Treatment:</strong> '+esc(r.treatment||'')+'</div>'+(r.remarks?'<div><strong>Remarks:</strong> '+esc(r.remarks)+'</div>':'')+'</div>';}
+                for(var i=0;i<notes.length;i++){var r=notes[i];h+='<div style="background:var(--ph-surface-2);border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid var(--ph-border);"><div style="font-size:12px;color:var(--ph-text-muted);margin-bottom:6px;"><i class="fa fa-clock-o"></i> '+esc(r.dDateTime||'')+'</div><div><strong>Progress:</strong> '+esc(r.progress||'')+'</div><div><strong>Treatment:</strong> '+esc(r.treatment||'')+'</div>'+(r.remarks?'<div><strong>Remarks:</strong> '+esc(r.remarks)+'</div>':'')+'</div>';}
                 return h;
             }
             function tblRx(){
                 if(!fa) return '<div class="ph-nurse-notice"><i class="fa fa-lock"></i> Restricted to doctors.</div>';
                 if(!rx.length) return '<div class="ph-empty">No prescriptions.</div>';
-                var h='<table class="table table-condensed table-striped"><thead><tr><th>Drug</th><th>Dosage</th><th>Days</th><th>Qty</th><th>Instruction</th></tr></thead><tbody>';
+                var h='<div class="table-responsive"><table class="table table-condensed table-striped"><thead><tr><th>Drug</th><th>Dosage</th><th>Days</th><th>Qty</th><th>Instruction</th></tr></thead><tbody>';
                 for(var i=0;i<rx.length;i++){
                     var r=rx[i];
                     var dose=(r.dosage||'');
@@ -505,12 +560,12 @@
                     if(!dose && r.frequency){ dose = r.frequency; }
                     h+='<tr><td><strong>'+esc(r.drug_name||r.medicine_text||'')+'</strong></td><td>'+esc(dose)+'</td><td>'+esc(r.days||'')+'</td><td>'+esc(r.total_qty||'')+'</td><td>'+esc(r.instruction||'')+'</td></tr>';
                 }
-                return h+'</tbody></table>';
+                return h+'</tbody></table></div>';
             }
             function tblLab(rows){
                 if(!fa) return '<div class="ph-nurse-notice"><i class="fa fa-lock"></i> Restricted to doctors.</div>';
                 if(!rows.length) return '<div class="ph-empty">No items.</div>';
-                var h='<table class="table table-condensed table-striped"><thead><tr><th>Date/Time</th><th>Item</th><th>Status</th><th>Findings</th><th>Result</th><th>File</th></tr></thead><tbody>';
+                var h='<div class="table-responsive"><table class="table table-condensed table-striped"><thead><tr><th>Date/Time</th><th>Item</th><th>Status</th><th>Findings</th><th>Result</th><th>File</th></tr></thead><tbody>';
                 for(var i=0;i<rows.length;i++){
                     var r=rows[i];var item=r.display_name||r.particular_name||r.sono_item_name||r.laboratory_text||'';
                     var wf=r.wf_status||'';
@@ -519,7 +574,7 @@
                     var att = (!isPending && r.lab_result_upload && r.io_lab_id) ? '<a target="_blank" href="'+baseUrl+'app/laboratory/download_result/'+encodeURIComponent(r.io_lab_id)+'" class="btn btn-xs btn-default"><i class="fa fa-download"></i></a>' : '';
                     h+='<tr><td>'+esc(r.dDateTime||'')+'</td><td>'+esc(item)+'</td><td style="'+wfCls+';font-weight:600;">'+esc(wf)+'</td><td>'+esc(r.findings||'')+'</td><td>'+esc(r.result||'')+'</td><td>'+att+'</td></tr>';
                 }
-                return h+'</tbody></table>';
+                return h+'</tbody></table></div>';
             }
             function tblBilling(){
                 if(!fa) return '<div class="ph-nurse-notice"><i class="fa fa-lock"></i> Restricted.</div>';
@@ -531,31 +586,31 @@
                     +'<div class="col-sm-4"><div class="ph-stat-card" style="border-left:3px solid var(--ph-red);text-align:left;"><div class="ph-stat-lbl">Outstanding</div><div class="ph-stat-val" style="font-size:18px;color:var(--ph-red);">GHS '+esc(Number(billing.outstanding).toFixed(2))+'</div></div></div>'
                     +'</div>';
                 if(!inv.length && tx.length){
-                    var h2=sum+'<table class="table table-condensed table-striped"><thead><tr><th>Invoice</th><th>Dept</th><th>Item</th><th>Status</th><th>Amount</th><th>Paid</th><th>Balance</th></tr></thead><tbody>';
+                    var h2=sum+'<div class="table-responsive"><table class="table table-condensed table-striped"><thead><tr><th>Invoice</th><th>Dept</th><th>Item</th><th>Status</th><th>Amount</th><th>Paid</th><th>Balance</th></tr></thead><tbody>';
                     for(var j=0;j<tx.length;j++){
                         var t=tx[j];
                         h2+='<tr><td>'+esc(t.invoice_no||'')+'</td><td>'+esc(t.department||'')+'</td><td>'+esc(t.item_name||'')+'</td><td>'+esc(t.payment_status||'')+'</td><td>'+esc(t.net_amount||'')+'</td><td>'+esc(t.paid_amount||'')+'</td><td>'+esc(t.balance_amount||'')+'</td></tr>';
                     }
-                    return h2+'</tbody></table>';
+                    return h2+'</tbody></table></div>';
                 }
                 if(!inv.length) return sum+'<div class="ph-empty">No invoices.</div>';
-                var h=sum+'<table class="table table-condensed table-striped"><thead><tr><th>Invoice</th><th>Date</th><th>Payment</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead><tbody>';
+                var h=sum+'<div class="table-responsive"><table class="table table-condensed table-striped"><thead><tr><th>Invoice</th><th>Date</th><th>Payment</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead><tbody>';
                 for(var i=0;i<inv.length;i++){var r=inv[i];h+='<tr><td>'+esc(r.invoice_no||'')+'</td><td>'+esc(r.dDate||'')+'</td><td>'+esc(r.payment_type||'')+'</td><td>'+esc(r.total_amount||'')+'</td><td>'+esc(r.paid_amount||'')+'</td><td>'+esc(r.outstanding_amount||'')+'</td></tr>';}
-                return h+'</tbody></table>';
+                return h+'</tbody></table></div>';
             }
 
-            var ov='<div class="row"><div class="col-sm-6"><table class="table table-condensed table-striped">'
+            var ov='<div class="row"><div class="col-sm-6"><div class="table-responsive"><table class="table table-condensed table-striped">'
                 +'<tr><th style="width:40%;">Visit ID</th><td>'+esc(v.IO_ID||'')+' <span class="ph-badge-encounter '+(String(v.patient_type||'').toUpperCase()==='IPD'?'ph-badge-ipd':'ph-badge-opd')+'">'+esc(v.patient_type||'')+'</span></td></tr>'
                 +'<tr><th>Date/Time</th><td>'+esc((v.date_visit||'')+' '+(v.time_visit||''))+'</td></tr>'
                 +'<tr><th>Doctor</th><td>'+esc(v.doctor_name||'')+'</td></tr>'
                 +'<tr><th>Department</th><td>'+esc(v.dept_name||'')+'</td></tr>'
                 +'<tr><th>Status</th><td><span class="ph-badge-status '+statusClass(v.nStatus)+'">'+esc(v.nStatus||'Active')+'</span></td></tr>'
-                +'</table></div><div class="col-sm-6"><table class="table table-condensed table-striped">'
+                +'</table></div></div><div class="col-sm-6"><div class="table-responsive"><table class="table table-condensed table-striped">'
                 +'<tr><th style="width:40%;">Complaints</th><td>'+esc(v.complaints||'—')+'</td></tr>'
                 +'<tr><th>Provisional Dx</th><td>'+esc(v.provisional_diagnosis||'—')+'</td></tr>'
                 +'<tr><th>Allergies</th><td style="'+(v.allergies?'color:var(--ph-red);font-weight:600;':'')+'">'+esc(v.allergies||'None')+'</td></tr>'
                 +'<tr><th>Warnings</th><td style="'+(v.warnings?'color:var(--ph-red);font-weight:600;':'')+'">'+esc(v.warnings||'None')+'</td></tr>'
-                +'</table></div></div>';
+                +'</table></div></div></div>';
 
             var html='<ul class="nav nav-tabs" role="tablist">'
                 +'<li class="active"><a href="#'+pfx+'ov" data-toggle="tab"><i class="fa fa-list-alt"></i> Overview</a></li>'

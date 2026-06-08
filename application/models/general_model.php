@@ -161,8 +161,45 @@ class General_model extends CI_Model{
 	
 	public function companyInfo(){
 		$this->ensure_company_info_schema();
-		$query = $this->db->get("company_info");
-		return $query->row();
+		
+		// Ensure BrandingService is explicitly loaded
+		require_once APPPATH . 'libraries/BrandingService.php';
+		
+		// Map BrandingService settings to legacy company_info properties for backward compatibility
+		$settings = BrandingService::settings();
+		
+		$info = new stdClass();
+		$info->company_name = !empty($settings['facility_name']) ? $settings['facility_name'] : 'Healthcare Facility';
+		$info->site_title = !empty($settings['facility_short_name']) ? $settings['facility_short_name'] : '';
+		$info->hospital_tagline = !empty($settings['facility_tagline']) ? $settings['facility_tagline'] : '';
+		
+		// Handle logo compatibility. If empty in settings, fall back to 'sample.jpg'
+		$info->logo = !empty($settings['logo_path']) ? $settings['logo_path'] : 'sample.jpg';
+		$info->login_logo = !empty($settings['logo_dark']) ? $settings['logo_dark'] : 'sample.jpg';
+		$info->header_logo = !empty($settings['logo_light']) ? $settings['logo_light'] : 'sample.jpg';
+		
+		$info->company_address = !empty($settings['address']) ? $settings['address'] : '';
+		$info->company_contactNo = !empty($settings['phone']) ? $settings['phone'] : '';
+		$info->company_email = !empty($settings['email']) ? $settings['email'] : '';
+		$info->TIN = !empty($settings['tin']) ? $settings['tin'] : '';
+		$info->theme_default = 'light';
+		
+		// Map aliases / modern properties to ensure 100% print template coverage
+		$info->facility_name = $info->company_name;
+		$info->facility_short_name = $info->site_title;
+		$info->facility_tagline = $info->hospital_tagline;
+		$info->logo_path = !empty($settings['logo_path']) ? $settings['logo_path'] : '';
+		$info->logo_dark = !empty($settings['logo_dark']) ? $settings['logo_dark'] : '';
+		$info->logo_light = !empty($settings['logo_light']) ? $settings['logo_light'] : '';
+		$info->address = $info->company_address;
+		$info->phone = $info->company_contactNo;
+		$info->email = $info->company_email;
+		$info->website = !empty($settings['website']) ? $settings['website'] : '';
+		$info->tin = $info->TIN;
+		$info->registration_number = !empty($settings['registration_number']) ? $settings['registration_number'] : '';
+		$info->footer_note = !empty($settings['footer_note']) ? $settings['footer_note'] : '';
+		
+		return $info;
 	}
 	
 	public function getUserLoggedIn($username){

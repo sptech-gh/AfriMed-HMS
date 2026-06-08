@@ -9,6 +9,7 @@
 |
 */
 $config['migration_enabled'] = TRUE;
+$config['migration_type'] = 'timestamp';
 
 
 /*

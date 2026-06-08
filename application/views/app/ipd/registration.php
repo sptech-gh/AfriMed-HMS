@@ -60,6 +60,7 @@
                                 <h3 class="box-title"><i class="fa fa-hospital-o"></i> Pending Admissions from OPD <span class="badge bg-red"><?php echo count($admission_queue); ?></span></h3>
                             </div>
                             <div class="box-body table-responsive no-padding">
+                                <div class="table-responsive">
                                 <table class="table table-hover table-striped">
                                     <thead>
                                         <tr>
@@ -91,6 +92,7 @@
                                     <?php endforeach; ?>
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     </div>

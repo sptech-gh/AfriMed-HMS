@@ -23,8 +23,13 @@
 											}else{
 												$picture = $companyInfo->logo;
 											}
+											if ($picture === 'sample.jpg') {
+												$logo_url = base_url('public/company_logo/sample.jpg');
+											} else {
+												$logo_url = base_url('uploads/facility_logos/default/'.$picture);
+											}
 										?>
-										<img src="<?php echo base_url();?>public/company_logo/<?php echo $picture;?>" class="img-rounded" width="120" height="120">
+										<img src="<?php echo $logo_url; ?>" class="img-rounded" style="height:75px; max-width:240px; object-fit:contain;" />
                                  <?php echo $companyInfo->company_name;?>
                                 
                             </h2>                            

@@ -10,6 +10,28 @@
     <link href="<?php echo base_url(); ?>public/css/AdminLTE.css" rel="stylesheet" type="text/css" />
     <style>
         :root { --danger:#dd4b39; --warning:#f39c12; --success:#00a65a; --shadow:0 2px 10px rgba(0,0,0,0.09); --radius:8px; }
+
+        .theme-dark {
+            --primary: var(--hms-primary);
+            --success: var(--hms-success);
+            --warning: var(--hms-warning);
+            --danger:  var(--hms-danger);
+            --shadow:  0 2px 10px rgba(0,0,0,0.4);
+        }
+
+        /* Dark mode overrides */
+        .theme-dark .boxx {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark hr {
+            border-top-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .table {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+
         .boxx { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 18px; margin-bottom:16px; }
         .rc-badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700; }
         .rc-badge.OK { background:#d4edda; color:#155724; }

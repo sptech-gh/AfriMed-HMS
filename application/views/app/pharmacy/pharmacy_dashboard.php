@@ -22,6 +22,172 @@
             --radius: 8px;
         }
 
+        .theme-dark {
+            --primary: var(--hms-primary);
+            --success: var(--hms-success);
+            --warning: var(--hms-warning);
+            --danger:  var(--hms-danger);
+            --info:    var(--hms-info);
+            --purple:  #7c3aed;
+            --shadow:  0 2px 10px rgba(0,0,0,0.4);
+        }
+
+        /* Dark mode overrides */
+        .theme-dark .stat-card {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .stat-card:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .stat-card .stat-label {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .nav-tabs-modern {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .nav-tabs-modern .tab-btn {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .nav-tabs-modern .tab-btn:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .nav-tabs-modern .tab-btn.active {
+            background: var(--primary) !important;
+            color: #fff !important;
+        }
+        .theme-dark .patient-card-modern {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .patient-card-modern:hover {
+            border-left-color: var(--primary) !important;
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark .patient-card-modern.selected {
+            background: var(--hms-active, rgba(59,158,221,0.18)) !important;
+            border-left-color: var(--primary) !important;
+        }
+        .theme-dark .patient-card-modern .patient-name {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .patient-card-modern .patient-meta {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .rx-queue-bar {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rx-queue-bar .rq-filter-btn {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .rx-queue-bar .rq-filter-btn:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark .rx-queue-bar .rq-filter-btn.active {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: #fff !important;
+        }
+        .theme-dark .rx-queue-bar .rq-filter-btn.nhis.active {
+            background: var(--purple) !important;
+            border-color: var(--purple) !important;
+        }
+        .theme-dark .rx-queue-bar .rq-filter-btn.urgent.active {
+            background: var(--danger) !important;
+            border-color: var(--danger) !important;
+        }
+        .theme-dark .rx-queue-bar .rq-filter-btn.dispensed.active {
+            background: var(--success) !important;
+            border-color: var(--success) !important;
+        }
+        .theme-dark #rxQueueTable {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark #rxQueueTable thead th {
+            background: var(--table-head-bg, #1e293b) !important;
+            border-bottom-color: var(--hms-border-strong, rgba(255,255,255,0.16)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark #rxQueueTable thead th:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark #rxQueueTable tbody tr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            background: transparent;
+        }
+        .theme-dark #rxQueueTable tbody tr:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark #rxQueueTable tbody tr.urgent-row {
+            background: rgba(239, 68, 68, 0.08) !important;
+        }
+        .theme-dark #rxQueueTable tbody tr.nhis-row {
+            background: rgba(124, 58, 237, 0.08) !important;
+        }
+        .theme-dark #rxQueueTable tbody tr.stat-row {
+            background: rgba(245, 158, 11, 0.08) !important;
+        }
+        .theme-dark .rx-queue-footer {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            border-top-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+            box-shadow: var(--shadow) !important;
+        }
+        .theme-dark .rx-queue-footer .pagination-btns button {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rx-queue-footer .pagination-btns button:hover:not(:disabled) {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark .rx-queue-footer .pagination-btns button.active {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: #fff !important;
+        }
+        .theme-dark .view-toggle-bar {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .view-toggle-bar .vtb-btn {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .view-toggle-bar .vtb-btn:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark .view-toggle-bar .vtb-btn.active {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: #fff !important;
+        }
+        .theme-dark .quick-search-bar {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+            border: 1px solid var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .quick-search-bar .form-control {
+            background-color: var(--hms-input-bg, rgba(255,255,255,0.05)) !important;
+            color: var(--hms-input-text, rgba(255,255,255,0.90)) !important;
+            border-color: var(--hms-input-border, rgba(255,255,255,0.14)) !important;
+        }
+        .theme-dark .form-control {
+            background-color: var(--hms-input-bg, rgba(255,255,255,0.05)) !important;
+            color: var(--hms-input-text, rgba(255,255,255,0.90)) !important;
+            border-color: var(--hms-input-border, rgba(255,255,255,0.14)) !important;
+        }
+
         /* Quick Search Bar */
         .quick-search-bar {
             background: linear-gradient(135deg, #3c8dbc 0%, #2c6d9c 100%);
@@ -777,7 +943,7 @@
                     </div>
 
                     <!-- Table -->
-                    <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);">
+                    <div style="background:var(--hms-surface, #fff);border-radius:var(--radius);box-shadow:var(--shadow);">
                         <div id="rxQueueTableWrap">
                             <table id="rxQueueTable">
                                 <thead>

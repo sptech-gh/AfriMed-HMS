@@ -85,6 +85,7 @@
    })();
    </script>
 	<link href="<?php echo base_url();?>public/css/hms-enhanced.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css" />
+	<link href="<?php echo base_url();?>assets/css/hms-responsive.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css" />
 	<?php $ui_theme = $this->session->userdata('ui_theme'); if ($ui_theme !== 'dark' && $ui_theme !== 'light') { $ui_theme = 'light'; } ?>
 	<script type="text/javascript">
 	(function(){
@@ -93,29 +94,27 @@
 			var stored = localStorage.getItem('hms_ui_theme');
 			var theme = (stored === 'dark' || stored === 'light') ? stored : serverTheme;
 			if (theme === 'dark') {
-				document.body.classList.add('theme-dark');
-				document.body.classList.remove('theme-light');
+				document.documentElement.classList.add('theme-dark');
+				document.documentElement.classList.remove('theme-light');
+				if (document.body) {
+					document.body.classList.add('theme-dark');
+					document.body.classList.remove('theme-light');
+				}
 			} else {
-				document.body.classList.add('theme-light');
-				document.body.classList.remove('theme-dark');
+				document.documentElement.classList.add('theme-light');
+				document.documentElement.classList.remove('theme-dark');
+				if (document.body) {
+					document.body.classList.add('theme-light');
+					document.body.classList.remove('theme-dark');
+				}
 			}
 		} catch (e) {}
 	})();
 	</script>
 	<?php
-		$companyName = (isset($companyInfo) && $companyInfo && isset($companyInfo->company_name)) ? trim((string)$companyInfo->company_name) : '';
-		$headerLogo = isset($companyInfo) && $companyInfo && isset($companyInfo->header_logo) && trim((string)$companyInfo->header_logo) !== '' ? trim((string)$companyInfo->header_logo) : (isset($companyInfo) && $companyInfo && isset($companyInfo->logo) ? trim((string)$companyInfo->logo) : '');
-		if ($headerLogo === '') { $headerLogo = 'sample.jpg'; }
-
-		$siteTitle = '';
-		if (isset($companyInfo) && $companyInfo) {
-			if (isset($companyInfo->site_title) && trim((string)$companyInfo->site_title) !== '') {
-				$siteTitle = trim((string)$companyInfo->site_title);
-			} else if ($companyName !== '') {
-				$siteTitle = $companyName;
-			}
-		}
-		if ($siteTitle === '') { $siteTitle = ($companyName !== '' ? $companyName : 'Hebrew Medical Center'); }
+		$companyName = getFacilityName();
+		$headerLogo = getFacilityLogo();
+		$siteTitle = getFacilityName() . ' | ' . getPlatformName();
 
 		if (!isset($userInfo) || !is_object($userInfo)) {
 			if (isset($this) && isset($this->data) && isset($this->data['userInfo']) && is_object($this->data['userInfo'])) {
@@ -129,6 +128,14 @@
 	(function(){
 		try {
 			document.title = <?php echo json_encode($siteTitle); ?>;
+			var link = document.querySelector("link[rel*='icon']");
+			if (!link) {
+				link = document.createElement('link');
+				link.type = 'image/png';
+				link.rel = 'shortcut icon';
+				document.getElementsByTagName('head')[0].appendChild(link);
+			}
+			link.href = <?php echo json_encode(BrandingService::platformLogo()); ?>;
 		} catch (e) {}
 	})();
 	</script>
@@ -181,8 +188,9 @@
 	</script>
 
 <header class="header">
-    <a href="#" class="logo">
-		<div class="logo-pms" style="display:none;"><img src="<?php echo base_url()?>public/company_logo/<?php echo $headerLogo;?>" height="45"></div>
+    <a href="<?php echo base_url(); ?>app/dashboard" class="logo" style="display: flex; align-items: center; gap: 8px; justify-content: center; text-decoration: none;">
+        <img src="<?php echo getFacilityLogo(); ?>" alt="Logo" style="max-height: 32px; width: auto; border-radius: 4px;">
+        <span style="font-weight: bold; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff;"><?php echo getFacilityName(); ?></span>
     </a>
     <nav class="navbar navbar-static-top" role="navigation">
         <!-- Sidebar toggle button-->
@@ -192,8 +200,11 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
         </a>
-        <div class="logo2"> 
-                <?php echo $companyName; ?>
+        <div class="logo2" style="display: flex; align-items: center; gap: 10px; height: 50px; float: left; padding: 0 15px; line-height: 50px; color: #fff; font-size: 20px; font-weight: 500;">
+            <span class="facility-header-name" style="font-weight: 700; font-size: 18px; color: #ffffff;"><?php echo getFacilityName(); ?></span>
+            <span class="platform-power-badge" style="font-size: 10px; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 20px; line-height: 1.4; color: rgba(255,255,255,0.85); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;">
+                Powered by Reddy HMS
+            </span>
         </div>
         <div class="navbar-right">
             <ul class="nav navbar-nav">
@@ -342,9 +353,13 @@
 	(function(){
 		function applyTheme(theme){
 			if (theme === 'dark') {
+				document.documentElement.classList.add('theme-dark');
+				document.documentElement.classList.remove('theme-light');
 				document.body.classList.add('theme-dark');
 				document.body.classList.remove('theme-light');
 			} else {
+				document.documentElement.classList.add('theme-light');
+				document.documentElement.classList.remove('theme-dark');
 				document.body.classList.add('theme-light');
 				document.body.classList.remove('theme-dark');
 			}

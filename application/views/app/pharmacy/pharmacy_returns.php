@@ -44,6 +44,79 @@
         .type-badge.PATIENT_RETURN      { background:#d1ecf1; color:#0c5460; }
         .type-badge.WARD_RETURN         { background:#fff3cd; color:#856404; }
         .type-badge.INTERNAL_CORRECTION { background:#e9ecef; color:#495057; }
+
+        /* Dark mode overrides */
+        .theme-dark .ret-stat {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .ret-stat .rl {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .ret-filter {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .ret-filter input,
+        .theme-dark .ret-filter select {
+            background-color: var(--hms-input-bg, rgba(255,255,255,0.05)) !important;
+            color: var(--hms-input-text, rgba(255,255,255,0.90)) !important;
+            border-color: var(--hms-input-border, rgba(255,255,255,0.14)) !important;
+        }
+        .theme-dark .ret-table-wrap {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .ret-table-hdr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .ret-table thead th {
+            background: var(--table-head-bg, #1e293b) !important;
+            border-bottom-color: var(--hms-border-strong, rgba(255,255,255,0.16)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .ret-table tbody tr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .ret-table tbody tr:hover {
+            background: var(--table-row-hover-bg, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark .ret-badge.PENDING,
+        .theme-dark .type-badge.WARD_RETURN {
+            background: var(--hms-warning-bg, rgba(245, 158, 11, 0.12)) !important;
+            color: var(--hms-warning, #f59e0b) !important;
+            border: 1px solid rgba(245, 158, 11, 0.2) !important;
+        }
+        .theme-dark .ret-badge.APPROVED {
+            background: var(--hms-success-bg, rgba(34, 197, 94, 0.12)) !important;
+            color: var(--hms-success, #22c55e) !important;
+            border: 1px solid rgba(34, 197, 94, 0.2) !important;
+        }
+        .theme-dark .ret-badge.REJECTED {
+            background: var(--hms-danger-bg, rgba(239, 68, 68, 0.12)) !important;
+            color: var(--hms-danger, #ef4444) !important;
+            border: 1px solid rgba(239, 68, 68, 0.2) !important;
+        }
+        .theme-dark .type-badge.PATIENT_RETURN {
+            background: var(--hms-info-bg, rgba(34, 211, 238, 0.12)) !important;
+            color: var(--hms-info, #22d3ee) !important;
+            border: 1px solid rgba(34, 211, 238, 0.2) !important;
+        }
+        .theme-dark .type-badge.INTERNAL_CORRECTION {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+            border: 1px solid var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .modal-content {
+            background: var(--hms-surface, #0f172a) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            border: 1px solid var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .modal-footer {
+            border-top-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
     </style>
 </head>
 <body class="skin-blue">

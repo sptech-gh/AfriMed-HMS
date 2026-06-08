@@ -3,9 +3,25 @@
 <link href="<?php echo base_url();?>public/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
 <link href="<?php echo base_url();?>public/css/ionicons.min.css" rel="stylesheet" type="text/css" />
 <link href="<?php echo base_url();?>public/css/AdminLTE.css" rel="stylesheet" type="text/css" />
+<link href="<?php echo base_url();?>public/css/hms-enhanced.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css" />
+<script type="text/javascript">
+(function(){
+    try {
+        var stored = localStorage.getItem('hms_ui_theme');
+        var theme = (stored === 'dark' || stored === 'light') ? stored : 'light';
+        if (theme === 'dark') {
+            document.documentElement.classList.add('theme-dark');
+            document.documentElement.classList.remove('theme-light');
+        } else {
+            document.documentElement.classList.add('theme-light');
+            document.documentElement.classList.remove('theme-dark');
+        }
+    } catch (e) {}
+})();
+</script>
 <style>
 	body{
-		background-color:#FFFFFF;
+		background: transparent !important;
 	}
 </style>
 <body>
@@ -15,6 +31,7 @@
     <fieldset>
     	<legend> UPLOAD ATTACHMENT </legend>
         
+        <div class="table-responsive">
         <table cellpadding="5" cellspacing="5">
         <tr>
         	<td>Description</td>
@@ -32,6 +49,7 @@
             </td>
         </tr>
         </table>
+        </div>
         
     	
         

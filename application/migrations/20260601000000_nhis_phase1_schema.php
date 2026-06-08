@@ -292,14 +292,18 @@ class Migration_Nhis_Phase1_Schema extends CI_Migration
         $artifact = (string)$artifact;
         $label = (string)$label;
 
+        // Dynamically check columns to make migration robust against dirty/pre-altered database state
+        $col_name = $this->db->field_exists('artifact', 'nhis_version_info') ? 'artifact' : 'component';
+        $val_col = $this->db->field_exists('version_label', 'nhis_version_info') ? 'version_label' : 'version_value';
+
         $row = $this->db
-            ->where('artifact', $artifact)
+            ->where($col_name, $artifact)
             ->get('nhis_version_info')
             ->row();
 
         $data = [
-            'artifact' => $artifact,
-            'version_label' => $label,
+            $col_name => $artifact,
+            $val_col => $label,
             'is_current' => 1,
         ];
 

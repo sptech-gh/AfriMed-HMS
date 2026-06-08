@@ -83,6 +83,43 @@
         @keyframes paSlide { from{transform:translateX(120%);opacity:0;} to{transform:translateX(0);opacity:1;} }
         .empty-box { text-align:center; padding:40px; color:#aaa; }
         .empty-box i { font-size:40px; display:block; margin-bottom:10px; }
+
+        /* Dark Mode Overrides */
+        .theme-dark {
+            --danger: var(--hms-danger) !important;
+            --warning: var(--hms-warning) !important;
+            --success: var(--hms-success) !important;
+            --primary: var(--hms-primary) !important;
+            --shadow: 0 2px 10px rgba(0,0,0,0.40) !important;
+        }
+        .theme-dark .pa-stat { background: var(--hms-surface) !important; border-left-color: var(--hms-border) !important; }
+        .theme-dark .pa-stat .pa-lbl { color: var(--hms-text-muted) !important; }
+        .theme-dark .pa-stat .pa-num { color: var(--hms-text) !important; }
+        .theme-dark .pa-stat .pa-icon { color: var(--hms-text-muted) !important; }
+        .theme-dark .pa-tab { background: var(--hms-surface-2) !important; border-color: var(--hms-border) !important; color: var(--hms-text-muted) !important; }
+        .theme-dark .pa-tab:hover { background: var(--hms-hover) !important; color: var(--hms-text) !important; }
+        .theme-dark .pa-tab.active { background: var(--hms-primary) !important; border-color: var(--hms-primary) !important; color: #fff !important; }
+        .theme-dark .pa-table-wrap { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; box-shadow: var(--hms-shadow) !important; }
+        .theme-dark .pa-table-header { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .pa-table thead th { background: var(--table-head-bg) !important; color: var(--hms-text) !important; border-bottom-color: var(--hms-border-strong) !important; }
+        .theme-dark .pa-table tbody tr { border-bottom-color: var(--hms-border) !important; }
+        .theme-dark .pa-table tbody tr:hover { background: var(--table-row-hover-bg) !important; }
+        .theme-dark .pa-table tbody tr td { color: var(--hms-text) !important; }
+        .theme-dark .pa-type.restock { background: rgba(59,158,221,0.15) !important; color: var(--hms-primary) !important; }
+        .theme-dark .pa-type.batch_restock { background: rgba(34,211,238,0.15) !important; color: var(--hms-info) !important; }
+        .theme-dark .pa-type.adjustment { background: rgba(245,158,11,0.15) !important; color: var(--hms-warning) !important; }
+        .theme-dark .pa-type.add { background: var(--hms-success-bg) !important; color: var(--hms-success) !important; }
+        .theme-dark .pa-type.other { background: rgba(255,255,255,0.08) !important; color: var(--hms-text-muted) !important; }
+        .theme-dark .pa-status.pending { background: rgba(245,158,11,0.15) !important; color: var(--hms-warning) !important; }
+        .theme-dark .pa-status.approved { background: var(--hms-success-bg) !important; color: var(--hms-success) !important; }
+        .theme-dark .pa-status.rejected { background: var(--hms-danger-bg) !important; color: var(--hms-danger) !important; }
+        .theme-dark .empty-box { color: var(--hms-text-muted) !important; }
+        
+        /* Modal styling */
+        .theme-dark .pa-modal-overlay { background: rgba(0,0,0,.7) !important; }
+        .theme-dark .pa-modal { background: var(--hms-surface) !important; border: 1px solid var(--hms-border) !important; color: var(--hms-text) !important; }
+        .theme-dark .pa-modal textarea { background: var(--hms-input-bg) !important; color: var(--hms-input-text) !important; border-color: var(--hms-input-border) !important; }
+        .theme-dark .pa-modal textarea:focus { border-color: var(--hms-input-focus-border) !important; }
         </style>
     </head>
     <body class="skin-blue">

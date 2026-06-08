@@ -23,7 +23,7 @@
 														if($getBeds->patient_no == ""){ $patientNo = "-"; }else{ $patientNo = $getBeds->patient_no;}
 														if($getBeds->IO_ID == ""){ $IO_ID = "-";}else{ $IO_ID = $getBeds->IO_ID;}
 														if($getBeds->patient == ""){ $patient = "-";}else{ $patient = $getBeds->patient;}
-														if(date("M d, Y",strtotime($getBeds->date_visit)) == "Jan 01, 1970"){ $date_visit = "-";}else{ $date_visit = date("M d, Y",strtotime($getBeds->date_visit))." ".$getBeds->time_visit;}
+														if(empty($getBeds->date_visit) || $getBeds->date_visit === '0000-00-00 00:00:00' || strtotime($getBeds->date_visit) <= 0){ $date_visit = "-";}else{ $date_visit = date("M d, Y",strtotime($getBeds->date_visit))." ".$getBeds->time_visit;}
 														?>
                                                       	<tr>
                                                         	<td><?php echo $getBeds->nStatus?></td>

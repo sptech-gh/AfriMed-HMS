@@ -314,6 +314,7 @@
 														height: 400px;
 														text-align: left;
 														overflow: auto">
+                                                      <div class="table-responsive">
                                                       <table class="table" id="myTable" width="100%" cellpadding="2" cellspacing="2">
                                                       <thead>
                                                       	<tr style="border-bottom:1px #999 solid; border-collapse:collapse">
@@ -327,6 +328,7 @@
                                                         </tr>
                                                       </thead>
                                                       </table>  
+                                                      </div>
                                                       </div>
                                                 </span>
                                                 </td>
@@ -343,7 +345,8 @@
 														height: 300px;
 														text-align: left;
 														overflow: auto">
-                                                        <table class="table" id="myTable" width="100%" cellpadding="2" cellspacing="2">
+                                                      <div class="table-responsive">
+                                                      <table class="table" id="myTable" width="100%" cellpadding="2" cellspacing="2">
                                                       <thead>
                                                       	<tr style="border-bottom:1px #999 solid; border-collapse:collapse">
                                                         	<th>Admit Here</th>
@@ -355,6 +358,7 @@
                                                         </tr>
                                                       </thead>
                                                       </table>  
+                                                      </div>
                                                       </div>
                                                 </span>
                                                 </td>

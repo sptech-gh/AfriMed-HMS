@@ -66,10 +66,14 @@
 										}else{
 											$picture = $companyInfo->logo;
 										}
+										if ($picture === 'sample.jpg') {
+											$logo_url = base_url('public/company_logo/sample.jpg');
+										} else {
+											$logo_url = base_url('uploads/facility_logos/default/'.$picture);
+										}
 									?>
-									<?php $logo_url = base_url('public/company_logo/'.$picture); ?>
 									<?php if (!empty($picture)) { ?>
-										<img src="<?php echo $logo_url; ?>" alt="logo" style="height:46px; max-width:160px; margin-bottom:8px;" />
+										<img src="<?php echo $logo_url; ?>" alt="logo" style="height:75px; max-width:240px; margin-bottom:12px; object-fit:contain;" />
 									<?php } ?>
 									<div class="brand"><?php echo $companyInfo->company_name;?></div>
 									<div class="muted"><?php echo $companyInfo->company_address;?></div>

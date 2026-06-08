@@ -7,7 +7,7 @@
 /* ========================================
    DESIGN TOKENS — LIGHT MODE
    ======================================== */
-body.theme-light {
+.theme-light {
     --hms-bg: #f4f6f9;
     --hms-surface: #ffffff;
     --hms-surface-2: #fafafa;
@@ -47,12 +47,23 @@ body.theme-light {
     --hms-sidebar-active: rgba(26,111,165,0.22);
     --hms-card-radius: 8px;
     color-scheme: light;
+    --table-row-bg: #ffffff;
+    --table-row-alt-bg: #fafafa;
+    --table-row-hover-bg: #e8f4fc;
+    --table-text-color: #212529;
+    --table-text-strong-color: #1a1a1a;
+    --table-text-muted-color: #6c757d;
+    --table-head-bg: #f8f9fa;
+    --table-head-text-color: #495057;
+    --table-border-color: #dee2e6;
+    --box-bg: #ffffff;
+    --box-header-border: #e9ecef;
 }
 
 /* ========================================
    DESIGN TOKENS — DARK MODE
    ======================================== */
-body.theme-dark {
+.theme-dark {
     --hms-bg: #0b1220;
     --hms-surface: #0f172a;
     --hms-surface-2: rgba(255,255,255,0.02);
@@ -92,6 +103,17 @@ body.theme-dark {
     --hms-sidebar-active: rgba(59,158,221,0.22);
     --hms-card-radius: 8px;
     color-scheme: dark;
+    --table-row-bg: #0f172a;
+    --table-row-alt-bg: #1e293b;
+    --table-row-hover-bg: rgba(255,255,255,0.06);
+    --table-text-color: rgba(255,255,255,0.88);
+    --table-text-strong-color: #ffffff;
+    --table-text-muted-color: rgba(255,255,255,0.60);
+    --table-head-bg: #1e293b;
+    --table-head-text-color: rgba(255,255,255,0.90);
+    --table-border-color: rgba(255,255,255,0.10);
+    --box-bg: #0f172a;
+    --box-header-border: rgba(255,255,255,0.10);
 }
 
 /* ========================================
@@ -156,6 +178,7 @@ label {
 
 .content {
     padding: 20px 15px;
+    background: transparent !important;
 }
 
 /* ========================================
@@ -818,9 +841,15 @@ body.skin-blue .header .navbar .sidebar-toggle:hover {
     background: rgba(255,255,255,0.10) !important;
 }
 
+html,
+body,
+.wrapper,
 body.skin-blue .wrapper,
-body.skin-blue .right-side {
-    background: var(--hms-bg);
+.right-side,
+body.skin-blue .right-side,
+.content-wrapper {
+    background-color: var(--hms-bg) !important;
+    background: var(--hms-bg) !important;
 }
 
 body.skin-blue .left-side,
@@ -1522,15 +1551,15 @@ table tbody tr,
 tr.patient-card,
 .box-body .table tbody tr,
 .box-body table tbody tr {
-    background-color: #ffffff !important;
-    background: #ffffff !important;
+    background-color: var(--table-row-bg) !important;
+    background: var(--table-row-bg) !important;
 }
 
 .table tbody tr:nth-child(odd),
 .table > tbody > tr:nth-child(odd),
 table tbody tr:nth-child(odd) {
-    background-color: #fafafa !important;
-    background: #fafafa !important;
+    background-color: var(--table-row-alt-bg) !important;
+    background: var(--table-row-alt-bg) !important;
 }
 
 .table tbody tr:hover,
@@ -1538,8 +1567,8 @@ table tbody tr:nth-child(odd) {
 .table-hover > tbody > tr:hover,
 table tbody tr:hover,
 tr.patient-card:hover {
-    background-color: #e8f4fc !important;
-    background: #e8f4fc !important;
+    background-color: var(--table-row-hover-bg) !important;
+    background: var(--table-row-hover-bg) !important;
 }
 
 .table tbody tr td,
@@ -1548,23 +1577,23 @@ table tbody tr td,
 tr.patient-card td {
     background-color: transparent !important;
     background: transparent !important;
-    color: #212529 !important;
+    color: var(--table-text-color) !important;
 }
 
 .table thead tr,
 .table > thead > tr,
 table thead tr {
-    background-color: #f8f9fa !important;
-    background: #f8f9fa !important;
+    background-color: var(--table-head-bg) !important;
+    background: var(--table-head-bg) !important;
 }
 
 .table thead tr th,
 .table > thead > tr > th,
 table thead tr th {
     background-color: transparent !important;
-    color: #495057 !important;
+    color: var(--table-head-text-color) !important;
     font-weight: 600;
-    border-bottom: 2px solid #dee2e6 !important;
+    border-bottom: 2px solid var(--table-border-color) !important;
 }
 
 /* Force text visibility in tables */
@@ -1572,19 +1601,19 @@ table thead tr th {
 .table th,
 table td,
 table th {
-    color: #212529 !important;
+    color: var(--table-text-color) !important;
 }
 
 .table td strong,
 table td strong {
-    color: #1a1a1a !important;
+    color: var(--table-text-strong-color) !important;
 }
 
 .table td small,
 table td small,
 .table td .text-muted,
 table td .text-muted {
-    color: #6c757d !important;
+    color: var(--table-text-muted-color) !important;
 }
 
 /* Box backgrounds */
@@ -1592,16 +1621,32 @@ table td .text-muted {
 .box-body,
 .box-header,
 .box-footer {
-    background-color: #ffffff !important;
-    background: #ffffff !important;
+    background-color: var(--box-bg) !important;
+    background: var(--box-bg) !important;
 }
 
 .box-header {
-    border-bottom: 1px solid #e9ecef !important;
+    border-bottom: 1px solid var(--box-header-border) !important;
 }
 
 .box-title {
-    color: #212529 !important;
+    color: var(--hms-text) !important;
+}
+
+/* Specificity overrides for content header in blue/black skins */
+.skin-blue .right-side > .content-header,
+.skin-black .right-side > .content-header,
+.right-side > .content-header {
+    background: var(--hms-surface) !important;
+    border-bottom: 1px solid var(--hms-border) !important;
+    box-shadow: var(--hms-shadow) !important;
+}
+
+.content-header h1 {
+    color: var(--hms-text) !important;
+}
+.content-header h1 small {
+    color: var(--hms-text-muted) !important;
 }
 
 /* Badge/Label visibility improvements */
@@ -1689,7 +1734,7 @@ table td .text-muted {
 
 /* Clean Input Styling */
 .form-control {
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--hms-input-border);
     border-radius: 6px;
     font-size: 14px;
     padding: 10px 12px;
@@ -1697,8 +1742,8 @@ table td .text-muted {
 }
 
 .form-control:focus {
-    border-color: #1a6fa5;
-    box-shadow: 0 0 0 3px rgba(26,111,165,0.15);
+    border-color: var(--hms-input-focus-border);
+    box-shadow: 0 0 0 3px var(--hms-focus);
 }
 
 /* Professional Modal Styling */
@@ -2122,3 +2167,501 @@ a:focus {
     font-weight: 500;
     text-transform: none;
 }
+
+/* ========================================
+   GLOBAL THEME RESOLUTIONS & SPECIFICITY FIXES
+   ======================================== */
+
+/* Callout banners theme resolution */
+.callout {
+    background-color: var(--hms-surface) !important;
+    border-color: var(--hms-border) !important;
+    color: var(--hms-text) !important;
+}
+.callout.callout-info {
+    background-color: var(--hms-info-bg) !important;
+    border-color: var(--hms-info) !important;
+}
+.callout.callout-danger {
+    background-color: var(--hms-danger-bg) !important;
+    border-color: var(--hms-danger) !important;
+}
+.callout.callout-warning {
+    background-color: var(--hms-warning-bg) !important;
+    border-color: var(--hms-warning) !important;
+}
+.callout.callout-success {
+    background-color: var(--hms-success-bg) !important;
+    border-color: var(--hms-success) !important;
+}
+
+/* Info Box theme resolution */
+.info-box {
+    background-color: var(--hms-surface) !important;
+    border: 1px solid var(--hms-border) !important;
+    color: var(--hms-text) !important;
+}
+.info-box-number,
+.info-box-text {
+    color: var(--hms-text) !important;
+}
+
+/* List Group Item theme resolution */
+.list-group-item {
+    background-color: var(--hms-surface) !important;
+    border-color: var(--hms-border) !important;
+    color: var(--hms-text) !important;
+}
+
+/* Default button specificity override */
+.btn.btn-default {
+    background-color: var(--hms-surface) !important;
+    color: var(--hms-text) !important;
+    border: 1px solid var(--hms-border) !important;
+}
+.btn.btn-default:hover,
+.btn.btn-default:focus,
+.btn.btn-default:active,
+.btn.btn-default.hover {
+    background-color: var(--hms-hover) !important;
+    color: var(--hms-text) !important;
+    border-color: var(--hms-border-strong) !important;
+}
+.btn.btn-default.active,
+.btn.btn-default:active,
+.btn-group > .btn.btn-default.active,
+.btn-group > .btn.btn-default:active {
+    background-color: var(--hms-primary) !important;
+    color: var(--hms-primary-contrast) !important;
+    border-color: var(--hms-primary) !important;
+}
+
+/* Pagination disabled states specificity override */
+.pagination > .disabled > span,
+.pagination > .disabled > span:hover,
+.pagination > .disabled > span:focus,
+.pagination > .disabled > a,
+.pagination > .disabled > a:hover,
+.pagination > .disabled > a:focus {
+    background-color: var(--hms-surface-2) !important;
+    border-color: var(--hms-border) !important;
+    color: var(--hms-text-muted) !important;
+}
+
+/* Table bordered border resolution */
+.table-bordered,
+.table-bordered > thead > tr > th,
+.table-bordered > tbody > tr > th,
+.table-bordered > tfoot > tr > th,
+.table-bordered > thead > tr > td,
+.table-bordered > tbody > tr > td,
+.table-bordered > tfoot > tr > td {
+    border: 1px solid var(--hms-border) !important;
+}
+
+/* Progress bar themed styling */
+.progress {
+    background-color: var(--hms-surface-2) !important;
+    border: 1px solid var(--hms-border) !important;
+}
+.progress-bar-success {
+    background-color: var(--hms-success) !important;
+}
+.progress-bar-warning {
+    background-color: var(--hms-warning) !important;
+}
+.progress-bar-danger {
+    background-color: var(--hms-danger) !important;
+}
+.progress-bar-info {
+    background-color: var(--hms-info) !important;
+}
+
+/* Standard Nav Tabs theme resolution */
+.nav-tabs {
+    border-bottom-color: var(--hms-border) !important;
+}
+.nav-tabs > li > a {
+    color: var(--hms-text-muted) !important;
+}
+.nav-tabs > li > a:hover {
+    background-color: var(--hms-hover) !important;
+    border-color: var(--hms-border) !important;
+    color: var(--hms-text) !important;
+}
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+    background-color: var(--hms-surface) !important;
+    color: var(--hms-text) !important;
+    border-color: var(--hms-border) var(--hms-border) transparent !important;
+}
+
+/* Form Control Disabled States */
+.form-control[disabled],
+.form-control[readonly],
+fieldset[disabled] .form-control {
+    background-color: var(--hms-surface-2) !important;
+    color: var(--hms-text-muted) !important;
+    border-color: var(--hms-border) !important;
+}
+
+/* DataTables Filter Focus Outline */
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--hms-input-focus-border) !important;
+    box-shadow: 0 0 0 3px var(--hms-focus) !important;
+    outline: none !important;
+}
+
+/* ========================================
+   ADDITIONAL DARK THEME OVERRIDES & UTILITIES
+   ======================================== */
+
+/* Small Box Dashboard Widgets & Inactive Report Cards */
+.small-box {
+    border-radius: var(--hms-card-radius) !important;
+    box-shadow: var(--hms-shadow) !important;
+    transition: all 0.3s ease !important;
+}
+.small-box:hover {
+    box-shadow: var(--hms-shadow-lg) !important;
+}
+
+.theme-dark .small-box {
+    border: 1px solid var(--hms-border) !important;
+    background-color: var(--hms-surface) !important;
+    color: var(--hms-text) !important;
+}
+
+.theme-dark .small-box.bg-gray {
+    background-color: var(--hms-surface) !important;
+    color: var(--hms-text-muted) !important;
+}
+.theme-dark .small-box.bg-gray h3,
+.theme-dark .small-box.bg-gray h4,
+.theme-dark .small-box.bg-gray p {
+    color: var(--hms-text-muted) !important;
+}
+.theme-dark .small-box.bg-gray:hover {
+    background-color: var(--hms-hover) !important;
+    border-color: var(--hms-primary) !important;
+}
+.theme-dark .small-box.bg-gray:hover h3,
+.theme-dark .small-box.bg-gray:hover h4,
+.theme-dark .small-box.bg-gray:hover p {
+    color: var(--hms-text) !important;
+}
+.theme-dark .small-box.bg-gray > .small-box-footer {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    color: var(--hms-text-muted) !important;
+    border-top: 1px solid var(--hms-border) !important;
+}
+.theme-dark .small-box.bg-gray:hover > .small-box-footer {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--hms-text) !important;
+}
+
+/* Color classes for small-box in dark mode */
+.theme-dark .small-box.bg-blue,
+.theme-dark .small-box.bg-primary {
+    background-color: var(--hms-primary) !important;
+    color: var(--hms-primary-contrast) !important;
+}
+.theme-dark .small-box.bg-green,
+.theme-dark .small-box.bg-success {
+    background-color: var(--hms-success) !important;
+    color: #ffffff !important;
+}
+.theme-dark .small-box.bg-red,
+.theme-dark .small-box.bg-danger {
+    background-color: var(--hms-danger) !important;
+    color: #ffffff !important;
+}
+.theme-dark .small-box.bg-yellow,
+.theme-dark .small-box.bg-warning {
+    background-color: var(--hms-warning) !important;
+    color: #ffffff !important;
+}
+.theme-dark .small-box.bg-aqua,
+.theme-dark .small-box.bg-info {
+    background-color: var(--hms-info) !important;
+    color: #ffffff !important;
+}
+.theme-dark .small-box.bg-teal {
+    background-color: #0d9488 !important;
+    color: #ffffff !important;
+}
+.theme-dark .small-box.bg-purple {
+    background-color: #6d28d9 !important;
+    color: #ffffff !important;
+}
+.theme-dark .small-box.bg-maroon {
+    background-color: #be185d !important;
+    color: #ffffff !important;
+}
+.theme-dark .small-box.bg-orange {
+    background-color: #c2410c !important;
+    color: #ffffff !important;
+}
+
+.theme-dark .small-box:not(.bg-gray) h3,
+.theme-dark .small-box:not(.bg-gray) h4,
+.theme-dark .small-box:not(.bg-gray) p,
+.theme-dark .small-box:not(.bg-gray) .small-box-footer {
+    color: #ffffff !important;
+}
+
+.theme-dark .small-box .icon {
+    color: rgba(255, 255, 255, 0.10) !important;
+}
+.theme-dark .small-box:hover .icon {
+    color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Global Background Utility Classes */
+.theme-dark .bg-gray {
+    background-color: var(--hms-surface-2) !important;
+    color: var(--hms-text) !important;
+}
+.theme-dark .bg-black {
+    background-color: #000000 !important;
+    color: var(--hms-text) !important;
+}
+.theme-dark .bg-blue,
+.theme-dark .bg-light-blue {
+    background-color: var(--hms-primary) !important;
+    color: var(--hms-primary-contrast) !important;
+}
+.theme-dark .bg-green {
+    background-color: var(--hms-success) !important;
+    color: #ffffff !important;
+}
+.theme-dark .bg-red {
+    background-color: var(--hms-danger) !important;
+    color: #ffffff !important;
+}
+.theme-dark .bg-yellow {
+    background-color: var(--hms-warning) !important;
+    color: #ffffff !important;
+}
+.theme-dark .bg-aqua {
+    background-color: var(--hms-info) !important;
+    color: #ffffff !important;
+}
+.theme-dark .bg-purple {
+    background-color: #6d28d9 !important;
+    color: #ffffff !important;
+}
+.theme-dark .bg-teal {
+    background-color: #0d9488 !important;
+    color: #ffffff !important;
+}
+.theme-dark .bg-maroon {
+    background-color: #be185d !important;
+    color: #ffffff !important;
+}
+
+/* Stacked Nav Pills / Left Side Patient Menus */
+.nav-pills > li > a {
+    border-radius: 6px !important;
+    padding: 10px 15px !important;
+    font-weight: 500 !important;
+    color: var(--hms-text-muted) !important;
+    background: transparent !important;
+    transition: all 0.2s ease !important;
+    margin-bottom: 4px !important;
+}
+.nav-pills > li > a:hover,
+.nav-pills > li > a:focus {
+    background-color: var(--hms-hover) !important;
+    color: var(--hms-primary) !important;
+}
+.nav-pills > li.active > a,
+.nav-pills > li.active > a:hover,
+.nav-pills > li.active > a:focus {
+    background-color: var(--hms-primary) !important;
+    color: var(--hms-primary-contrast) !important;
+}
+.theme-dark .nav-pills > li > a {
+    color: var(--hms-text-muted) !important;
+}
+.theme-dark .nav-pills > li > a:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    color: var(--hms-primary) !important;
+}
+.theme-dark .nav-pills > li.active > a,
+.theme-dark .nav-pills > li.active > a:hover,
+.theme-dark .nav-pills > li.active > a:focus {
+    background-color: var(--hms-primary) !important;
+    color: var(--hms-primary-contrast) !important;
+}
+
+/* Custom Nav Tabs Hover/Focus Theme Override */
+.nav-tabs-custom > .nav-tabs > li > a:hover,
+.nav-tabs-custom > .nav-tabs > li > a:focus {
+    background-color: var(--hms-hover) !important;
+    color: var(--hms-text) !important;
+    border-color: transparent !important;
+}
+.theme-light .nav-tabs-custom > .nav-tabs > li > a:hover,
+.theme-light .nav-tabs-custom > .nav-tabs > li > a:focus {
+    background-color: var(--hms-hover) !important;
+    color: var(--hms-text) !important;
+}
+.theme-dark .nav-tabs-custom > .nav-tabs > li > a:hover,
+.theme-dark .nav-tabs-custom > .nav-tabs > li > a:focus {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--hms-text) !important;
+}
+.theme-dark .nav-tabs-custom > .nav-tabs > li:not(.active) > a {
+    color: var(--hms-text-muted) !important;
+}
+.theme-dark .nav-tabs-custom > .nav-tabs > li.active > a {
+    background-color: var(--hms-surface) !important;
+    color: var(--hms-text) !important;
+    border-top-color: var(--hms-primary) !important;
+    border-left-color: var(--hms-border) !important;
+    border-right-color: var(--hms-border) !important;
+}
+
+/* Table Active / Totals Row theme resolution */
+.theme-dark .table > tbody > tr.active > td,
+.theme-dark .table > tbody > tr.active > th,
+.theme-dark .table > tfoot > tr.active > td,
+.theme-dark .table > tfoot > tr.active > th,
+.theme-dark .table > thead > tr.active > td,
+.theme-dark .table > thead > tr.active > th {
+    background-color: var(--hms-surface-2) !important;
+    color: var(--hms-text) !important;
+}
+
+/* Zebra Striping Cell Overrides for dark theme */
+.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: var(--hms-surface-2) !important;
+}
+.theme-dark .table-striped > tbody > tr:nth-of-type(even) > td {
+    background-color: transparent !important;
+}
+
+/* Theme standard label background/text colors in dark mode */
+.theme-dark .label-success { background-color: var(--hms-success) !important; color: #ffffff !important; }
+.theme-dark .label-warning { background-color: var(--hms-warning) !important; color: #ffffff !important; }
+.theme-dark .label-danger { background-color: var(--hms-danger) !important; color: #ffffff !important; }
+.theme-dark .label-info { background-color: var(--hms-info) !important; color: #ffffff !important; }
+.theme-dark .label-default { background-color: var(--hms-border-strong) !important; color: var(--hms-text) !important; }
+.theme-dark .label-primary { background-color: var(--hms-primary) !important; color: var(--hms-primary-contrast) !important; }
+
+/* Themed badges in dark mode */
+.theme-dark .badge.bg-gray { background-color: var(--hms-border-strong) !important; color: var(--hms-text) !important; }
+.theme-dark .badge.bg-blue { background-color: var(--hms-primary) !important; color: var(--hms-primary-contrast) !important; }
+.theme-dark .badge.bg-green { background-color: var(--hms-success) !important; color: #ffffff !important; }
+.theme-dark .badge.bg-red { background-color: var(--hms-danger) !important; color: #ffffff !important; }
+.theme-dark .badge.bg-yellow { background-color: var(--hms-warning) !important; color: #ffffff !important; }
+
+/* Text Color Classes native dark overrides */
+.theme-dark .text-success { color: var(--hms-success) !important; }
+.theme-dark .text-danger { color: var(--hms-danger) !important; }
+.theme-dark .text-warning { color: var(--hms-warning) !important; }
+.theme-dark .text-info { color: var(--hms-info) !important; }
+
+/* Pharmacy and Walkin Custom Components Theme Resolution */
+.theme-dark .rc-stat,
+.theme-dark .rc-filter,
+.theme-dark .rc-table-wrap,
+.theme-dark .boxx,
+.theme-dark .pa-stat,
+.theme-dark .pa-table-wrap,
+.theme-dark .pa-modal,
+.theme-dark .ret-stat,
+.theme-dark .ret-filter,
+.theme-dark .ret-table-wrap,
+.theme-dark .pat-card,
+.theme-dark .aud-table-wrap,
+.theme-dark .ps-stat,
+.theme-dark .ps-table-wrap,
+.theme-dark .ps-legend,
+.theme-dark .sh-table-wrap,
+.theme-dark .cd-legend,
+.theme-dark .txn-form-card,
+.theme-dark .page-card,
+.theme-dark .filter-bar,
+.theme-dark .receipt-card,
+.theme-dark .register-card {
+    background-color: var(--hms-surface) !important;
+    border: 1px solid var(--hms-border) !important;
+    color: var(--hms-text) !important;
+    box-shadow: var(--hms-shadow) !important;
+}
+
+/* Specific borders/subcomponents for the above */
+.theme-dark .rc-stat {
+    border-left: 4px solid var(--hms-primary) !important;
+}
+.theme-dark .step-indicator .step-circle {
+    background-color: var(--hms-surface-2) !important;
+    border-color: var(--hms-border-strong) !important;
+    color: var(--hms-text-muted) !important;
+}
+.theme-dark .step-indicator .active .step-circle {
+    background-color: var(--hms-primary) !important;
+    border-color: var(--hms-primary) !important;
+    color: var(--hms-primary-contrast) !important;
+}
+
+/* Warnings / Pending Badges in Pharmacy & Walkin */
+.theme-dark .rc-badge.WARNING,
+.theme-dark .pa-type.adjustment,
+.theme-dark .pa-status.pending,
+.theme-dark .ret-badge.PENDING,
+.theme-dark .type-badge.WARD_RETURN,
+.theme-dark .aud-badge.PENDING,
+.theme-dark .act-badge.HOLD,
+.theme-dark .ps-badge.PENDING,
+.theme-dark .rc-badge.PENDING,
+.theme-dark .sched.III {
+    background-color: var(--hms-warning-bg) !important;
+    color: var(--hms-warning) !important;
+    border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Table contextual row classes theme overrides in dark mode */
+.theme-dark .table > tbody > tr.success > td,
+.theme-dark .table > tbody > tr.success > th,
+.theme-dark .table > tfoot > tr.success > td,
+.theme-dark .table > tfoot > tr.success > th,
+.theme-dark .table > thead > tr.success > td,
+.theme-dark .table > thead > tr.success > th {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    color: var(--hms-success) !important;
+}
+
+.theme-dark .table > tbody > tr.danger > td,
+.theme-dark .table > tbody > tr.danger > th,
+.theme-dark .table > tfoot > tr.danger > td,
+.theme-dark .table > tfoot > tr.danger > th,
+.theme-dark .table > thead > tr.danger > td,
+.theme-dark .table > thead > tr.danger > th {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    color: var(--hms-danger) !important;
+}
+
+.theme-dark .table > tbody > tr.warning > td,
+.theme-dark .table > tbody > tr.warning > th,
+.theme-dark .table > tfoot > tr.warning > td,
+.theme-dark .table > tfoot > tr.warning > th,
+.theme-dark .table > thead > tr.warning > td,
+.theme-dark .table > thead > tr.warning > th {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: var(--hms-warning) !important;
+}
+
+.theme-dark .table > tbody > tr.info > td,
+.theme-dark .table > tbody > tr.info > th,
+.theme-dark .table > tfoot > tr.info > td,
+.theme-dark .table > tfoot > tr.info > th,
+.theme-dark .table > thead > tr.info > td,
+.theme-dark .table > thead > tr.info > th {
+    background-color: rgba(34, 211, 238, 0.15) !important;
+    color: var(--hms-info) !important;
+}
+

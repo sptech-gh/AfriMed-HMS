@@ -51,6 +51,9 @@ class Login extends General{
 	}
 	
 	public function validate_login(){
+		// Retrieve and ignore the facility_id field (visual-only, optional, no authentication impact)
+		$facility_id = $this->input->post('facility_id');
+		
 		$username = $this->input->post('username');
 		
 		// Check brute force protection

@@ -201,7 +201,7 @@ $(document).ready(function() {
             'DISPOSED': 'default'
         };
 
-        var html = '<table class="table table-bordered">';
+        var html = '<div class="table-responsive"><table class="table table-bordered">';
         html += '<tr><th width="30%">Barcode</th><td><strong class="text-primary">' + sample.sample_barcode + '</strong></td></tr>';
         html += '<tr><th>Patient</th><td>' + sample.patient_no + '</td></tr>';
         html += '<tr><th>Test</th><td>' + (sample.test_name || 'N/A') + '</td></tr>';
@@ -214,7 +214,7 @@ $(document).ready(function() {
         if (sample.received_at) {
             html += '<tr><th>Received in Lab</th><td>' + sample.received_at + '</td></tr>';
         }
-        html += '</table>';
+        html += '</table></div>';
 
         $('#sampleDetails').html(html);
         $('#sampleDetailsBox').show();

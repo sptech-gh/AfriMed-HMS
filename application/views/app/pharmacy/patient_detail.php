@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -14,39 +14,39 @@
         .patient-header { background: linear-gradient(135deg, #3c8dbc 0%, #2c6d9c 100%); color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .patient-header h2 { margin: 0 0 10px 0; font-weight: 700; font-size: 24px; }
         .patient-header .patient-meta { font-size: 14px; color: rgba(255,255,255,0.95); }
-        .rx-item { border: 1px solid #e0e0e0; border-radius: 8px; padding: 18px; margin-bottom: 15px; background: #ffffff !important; box-shadow: 0 2px 6px rgba(0,0,0,0.06); color: #212529 !important; }
-        .rx-item.status-dispensed { border-left: 5px solid #28a745; background: #f8fff9 !important; }
-        .rx-item.status-partial { border-left: 5px solid #ffc107; background: #fffdf5 !important; }
-        .rx-item.status-pending { border-left: 5px solid #dc3545; background: #ffffff !important; }
-        .rx-item.status-external { border-left: 5px solid #17a2b8; background: #f5fcff !important; }
-        .rx-item.status-unavailable { border-left: 5px solid #6c757d; background: #fafafa !important; }
+        .rx-item { border: 1px solid var(--hms-border, #e0e0e0); border-radius: 8px; padding: 18px; margin-bottom: 15px; background: var(--hms-surface, #ffffff) !important; box-shadow: 0 2px 6px rgba(0,0,0,0.06); color: var(--hms-text, #212529) !important; }
+        .rx-item.status-dispensed { border-left: 5px solid #28a745; background: var(--hms-success-bg, #f8fff9) !important; }
+        .rx-item.status-partial { border-left: 5px solid #ffc107; background: var(--hms-warning-bg, #fffdf5) !important; }
+        .rx-item.status-pending { border-left: 5px solid #dc3545; background: var(--hms-surface, #ffffff) !important; }
+        .rx-item.status-external { border-left: 5px solid #17a2b8; background: var(--hms-info-bg, #f5fcff) !important; }
+        .rx-item.status-unavailable { border-left: 5px solid #6c757d; background: var(--hms-surface-2, #fafafa) !important; }
         .rx-item * { color: inherit; }
-        .rx-item .rx-drug-name { color: #1a1a1a !important; }
-        .rx-item .rx-details { color: #495057 !important; }
-        .rx-item .rx-details span { color: #495057 !important; }
-        .rx-item .rx-details i { color: #6c757d !important; }
+        .rx-item .rx-drug-name { color: var(--hms-text, #1a1a1a) !important; }
+        .rx-item .rx-details { color: var(--hms-text-muted, #495057) !important; }
+        .rx-item .rx-details span { color: var(--hms-text-muted, #495057) !important; }
+        .rx-item .rx-details i { color: var(--hms-text-muted, #6c757d) !important; }
         .rx-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .rx-drug-name { font-size: 18px; font-weight: 700; color: #1a1a1a; }
-        .rx-details { font-size: 14px; color: #495057; font-weight: 500; }
-        .rx-details i { color: #6c757d; }
-        .rx-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e9ecef; }
+        .rx-drug-name { font-size: 18px; font-weight: 700; color: var(--hms-text, #1a1a1a); }
+        .rx-details { font-size: 14px; color: var(--hms-text-muted, #495057); font-weight: 500; }
+        .rx-details i { color: var(--hms-text-muted, #6c757d); }
+        .rx-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hms-border, #e9ecef); }
         .rx-progress { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
-        .rx-progress .progress { flex: 1; margin-bottom: 0; height: 24px; border-radius: 6px; background: #e9ecef; }
+        .rx-progress .progress { flex: 1; margin-bottom: 0; height: 24px; border-radius: 6px; background: var(--hms-surface-2, #e9ecef); }
         .rx-progress .progress-bar { font-size: 13px; font-weight: 600; line-height: 24px; }
-        .stock-warning { color: #dc3545; font-weight: 700; }
+        .stock-warning { color: var(--hms-danger, #dc3545); font-weight: 700; }
         
         /* Improved label/badge visibility */
         .label { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 4px; display: inline-block; text-transform: uppercase; letter-spacing: 0.3px; }
-        .label-success { background-color: #28a745; color: #fff !important; }
-        .label-warning { background-color: #ffc107; color: #212529 !important; }
-        .label-danger { background-color: #dc3545; color: #fff !important; }
-        .label-info { background-color: #17a2b8; color: #fff !important; }
-        .label-default { background-color: #6c757d; color: #fff !important; }
-        .label-primary { background-color: #007bff; color: #fff !important; }
+        .label-success { background-color: var(--hms-success, #28a745); color: #fff !important; }
+        .label-warning { background-color: var(--hms-warning, #ffc107); color: #212529 !important; }
+        .label-danger { background-color: var(--hms-danger, #dc3545); color: #fff !important; }
+        .label-info { background-color: var(--hms-info, #17a2b8); color: #fff !important; }
+        .label-default { background-color: var(--hms-border-strong, #6c757d); color: var(--hms-text, #fff) !important; }
+        .label-primary { background-color: var(--hms-primary, #007bff); color: #fff !important; }
         
         .payment-badge { font-size: 11px; font-weight: 600; padding: 4px 8px; }
         .action-btn-group { display: flex; flex-wrap: wrap; gap: 8px; }
-        .quick-actions { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef; }
+        .quick-actions { background: var(--hms-surface, #f8f9fa); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--hms-border, #e9ecef); }
         .quick-actions h4 { color: #212529; font-weight: 600; margin-bottom: 15px; }
         
         /* Button improvements */
@@ -106,6 +106,128 @@
         /* AJAX submit spinner */
         .btn-ajax-spin .fa { display: none; }
         .btn-ajax-spin .fa-spin-inline { display: inline-block !important; }
+
+        .theme-dark {
+            --primary: var(--hms-primary);
+            --success: var(--hms-success);
+            --warning: var(--hms-warning);
+            --danger:  var(--hms-danger);
+            --info:    var(--hms-info);
+            --purple:  #7c3aed;
+            --shadow:  0 2px 10px rgba(0,0,0,0.4);
+        }
+
+        /* Dark mode overrides */
+        .theme-dark .quick-actions {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .quick-actions h4 {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .quick-actions p.text-muted {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .rx-item {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            box-shadow: var(--shadow) !important;
+        }
+        .theme-dark .rx-item.status-dispensed {
+            border-left-color: #28a745 !important;
+            background: rgba(40, 167, 69, 0.08) !important;
+        }
+        .theme-dark .rx-item.status-partial {
+            border-left-color: #ffc107 !important;
+            background: rgba(255, 193, 7, 0.08) !important;
+        }
+        .theme-dark .rx-item.status-pending {
+            border-left-color: #dc3545 !important;
+            background: rgba(220, 53, 69, 0.08) !important;
+        }
+        .theme-dark .rx-item.status-external {
+            border-left-color: #17a2b8 !important;
+            background: rgba(23, 162, 184, 0.08) !important;
+        }
+        .theme-dark .rx-item.status-unavailable {
+            border-left-color: #6c757d !important;
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+        }
+        .theme-dark .rx-item .rx-drug-name {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rx-item .rx-details,
+        .theme-dark .rx-item .rx-details span {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .rx-item .rx-details i {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .rx-meta-strip {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+            border: 1px solid var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .rx-meta-strip strong {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .rx-progress .progress {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+        }
+        .theme-dark .rx-actions {
+            border-top-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .priority-badge.urgent {
+            background: rgba(220, 53, 69, 0.15) !important;
+            color: #ff8b94 !important;
+            border-color: rgba(220, 53, 69, 0.3) !important;
+        }
+        .theme-dark .priority-badge.stat {
+            background: rgba(255, 193, 7, 0.15) !important;
+            color: #ffe082 !important;
+            border-color: rgba(255, 193, 7, 0.3) !important;
+        }
+        .theme-dark .priority-badge.prn {
+            background: rgba(23, 162, 184, 0.15) !important;
+            color: #80deea !important;
+            border-color: rgba(23, 162, 184, 0.3) !important;
+        }
+        .theme-dark .box {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .box-header {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .box-title {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .form-control {
+            background-color: var(--hms-input-bg, rgba(255,255,255,0.05)) !important;
+            color: var(--hms-input-text, rgba(255,255,255,0.90)) !important;
+            border-color: var(--hms-input-border, rgba(255,255,255,0.14)) !important;
+        }
+        .theme-dark .form-control[readonly] {
+            background-color: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .modal-content {
+            background: var(--hms-surface, #0f172a) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            border: 1px solid var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .modal-header {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .modal-footer {
+            border-top-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .modal-title {
+            color: #fff !important;
+        }
     </style>
 </head>
 <body class="skin-blue">

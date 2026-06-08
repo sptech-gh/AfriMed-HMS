@@ -161,20 +161,21 @@
 										<?php endif; ?>
 											
 										<a href="<?php echo base_url()?>app/ipd_print/print_medication/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
-										<table class="table table-hover table-striped">
+										<div class="table-responsive">
+										<table class="table table-hover table-striped nursing-table">
 										<thead>
 												<tr>
 													<th>Medicine Name</th>
 													<th>Frequency</th>
 													<th>Instruction</th>
-													<th>Advice</th>
-													<th>Days</th>
-													<th>Qty</th>
+													<th class="d-none d-md-table-cell">Advice</th>
+													<th class="d-none d-md-table-cell">Days</th>
+													<th class="d-none d-md-table-cell">Qty</th>
 													<?php if (isset($nurse_enhancements_ready) && $nurse_enhancements_ready): ?>
 														<th>Last Admin</th>
 														<th>Admin</th>
 													<?php endif; ?>
-													<th>Prepared by</th>
+													<th class="d-none d-md-table-cell">Prepared by</th>
 													<th></th>
 												</tr>
 									</thead>
@@ -193,14 +194,14 @@
                                            <?php foreach($patientMedication as $rows){?>
                                            <?php $medName = trim((string)$rows->drug_name); $medText = isset($rows->medicine_text) ? trim((string)$rows->medicine_text) : ''; $medDisplay = $medName !== '' ? $medName : $medText; ?>
                                            <tr>
-                                           		<td><?php echo htmlspecialchars($medDisplay); ?></td>
-                                                <td><?php echo isset($rows->frequency) ? htmlspecialchars((string)$rows->frequency) : ''; ?></td>
-                                                <td><?php echo $rows->instruction?></td>
-                                                <td><?php echo $rows->advice?></td>
-                                                <td><?php echo $rows->days?></td>
-                                                <td><?php echo $rows->total_qty?></td>
+                                           		<td data-label="Medicine"><?php echo htmlspecialchars($medDisplay); ?></td>
+                                                <td data-label="Frequency"><?php echo isset($rows->frequency) ? htmlspecialchars((string)$rows->frequency) : ''; ?></td>
+                                                <td data-label="Instruction"><?php echo $rows->instruction?></td>
+                                                <td class="d-none d-md-table-cell" data-label="Advice"><?php echo $rows->advice?></td>
+                                                <td class="d-none d-md-table-cell" data-label="Days"><?php echo $rows->days?></td>
+                                                <td class="d-none d-md-table-cell" data-label="Qty"><?php echo $rows->total_qty?></td>
 											<?php if (isset($nurse_enhancements_ready) && $nurse_enhancements_ready): ?>
-												<td>
+												<td data-label="Last Admin">
 													<?php
 													$last = (isset($adminLatestByMed) && isset($adminLatestByMed[(string)$rows->iop_med_id])) ? $adminLatestByMed[(string)$rows->iop_med_id] : null;
 													if ($last) {
@@ -215,16 +216,17 @@
 													}
 													?>
 												</td>
-												<td>
+												<td data-label="Administer">
 													<a href="#" class="btn btn-xs btn-success" data-toggle="modal" data-target="#adminModal" data-med-id="<?php echo $rows->iop_med_id; ?>" data-med-name="<?php echo htmlspecialchars($medDisplay); ?>" data-med-dosage="<?php echo htmlspecialchars(isset($rows->dosage) ? $rows->dosage : ''); ?>" data-med-freq="<?php echo htmlspecialchars(isset($rows->frequency) ? $rows->frequency : ''); ?>"><i class="fa fa-check-square"></i> Administer</a>
 												</td>
 											<?php endif; ?>
-											<td><?php echo $rows->name?></td>
+											<td class="d-none d-md-table-cell" data-label="Prepared by"><?php echo $rows->name?></td>
 									</tr>
 									<?php }?>
 									<?php endif; ?>
                                            </tbody>
                                            </table>
+                                           </div>
 
 										<?php if (isset($opdMedications) && !empty($opdMedications)): ?>
 										<div class="box box-warning" style="margin-top:15px;">
@@ -238,6 +240,7 @@
 													These medications were prescribed during the patient's OPD visit. They cannot be administered here.
 													<strong>Ask the attending doctor to re-prescribe under this IPD encounter</strong> if these medications should continue during admission.
 												</div>
+												<div class="table-responsive">
 												<table class="table table-condensed table-striped">
 												<thead><tr><th>Visit</th><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Days</th><th>Qty</th><th>Prescribed By</th><th>Date</th></tr></thead>
 												<tbody>
@@ -255,6 +258,7 @@
 												<?php endforeach; ?>
 												</tbody>
 												</table>
+												</div>
 											</div>
 										</div>
 										<?php endif; ?>
@@ -277,7 +281,7 @@
 								<input type="hidden" name="patient_no" value="<?php echo $getOPDPatient->patient_no?>">
 								<input type="hidden" name="iop_med_id" id="admin_iop_med_id" value="">
 								<div class="modal fade" id="adminModal" tabindex="-1" role="dialog" aria-labelledby="adminModalLabel" aria-hidden="true">
-									<div class="modal-dialog">
+									<div class="modal-dialog modal-dialog-scrollable">
 										<div class="modal-content">
 											<div class="modal-header">
 												<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>

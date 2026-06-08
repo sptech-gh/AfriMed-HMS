@@ -18,6 +18,92 @@
             --shadow:  0 2px 10px rgba(0,0,0,0.09);
             --radius:  8px;
         }
+
+        .theme-dark {
+            --primary: var(--hms-primary);
+            --success: var(--hms-success);
+            --warning: var(--hms-warning);
+            --danger:  var(--hms-danger);
+            --purple:  #7c3aed;
+            --shadow:  0 2px 10px rgba(0,0,0,0.4);
+        }
+
+        /* Dark mode overrides */
+        .theme-dark .cd-stat {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-stat:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-stat .cd-lbl {
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .cd-filter {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-filter input, .theme-dark .cd-filter select {
+            background-color: var(--hms-input-bg, rgba(255,255,255,0.05)) !important;
+            color: var(--hms-input-text, rgba(255,255,255,0.90)) !important;
+            border-color: var(--hms-input-border, rgba(255,255,255,0.14)) !important;
+        }
+        .theme-dark .cd-filter input:focus, .theme-dark .cd-filter select:focus {
+            border-color: var(--hms-input-focus-border, #3b9edd) !important;
+        }
+        .theme-dark .cd-filter-btn.default {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+            border: 1px solid var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .cd-table-wrap {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .cd-table-header {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-table-header h4 {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-table {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-table thead th {
+            background: var(--table-head-bg, #1e293b) !important;
+            border-bottom-color: var(--hms-border-strong, rgba(255,255,255,0.16)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-table tbody tr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            background: transparent;
+        }
+        .theme-dark .cd-table tbody tr:hover {
+            background: var(--hms-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .theme-dark .sched.V, .theme-dark .sched.OTHER {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .req-no {
+            background: var(--hms-surface-2, rgba(255,255,255,0.02)) !important;
+            color: var(--hms-text-muted, rgba(255,255,255,0.60)) !important;
+        }
+        .theme-dark .cd-legend {
+            background: var(--hms-surface, #0f172a) !important;
+            border-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+        }
+        .theme-dark .cd-legend-hdr {
+            border-bottom-color: var(--hms-border, rgba(255,255,255,0.1)) !important;
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
+        .theme-dark .cd-legend-hdr h4 {
+            color: var(--hms-text, rgba(255,255,255,0.88)) !important;
+        }
         /* Stat cards */
         .cd-stat { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
             padding:16px 18px; display:flex; align-items:center; gap:14px;

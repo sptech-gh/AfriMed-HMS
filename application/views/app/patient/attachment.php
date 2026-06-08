@@ -3,15 +3,32 @@
 <link href="<?php echo base_url();?>public/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
 <link href="<?php echo base_url();?>public/css/ionicons.min.css" rel="stylesheet" type="text/css" />
 <link href="<?php echo base_url();?>public/css/AdminLTE.css" rel="stylesheet" type="text/css" />
+<link href="<?php echo base_url();?>public/css/hms-enhanced.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css" />
+<script type="text/javascript">
+(function(){
+    try {
+        var stored = localStorage.getItem('hms_ui_theme');
+        var theme = (stored === 'dark' || stored === 'light') ? stored : 'light';
+        if (theme === 'dark') {
+            document.documentElement.classList.add('theme-dark');
+            document.documentElement.classList.remove('theme-light');
+        } else {
+            document.documentElement.classList.add('theme-light');
+            document.documentElement.classList.remove('theme-dark');
+        }
+    } catch (e) {}
+})();
+</script>
 <style>
 	body{
-		background-color:#FFFFFF;
+		background: transparent !important;
 	}
 </style>
 <body>
 
 
 
+<div class="table-responsive">
 <table cellpadding="3" cellspacing="3" width="100%">
 <tr>
 	<Td><a href="<?php echo base_url();?>app/patient/addAttachment/<?php echo $patient_no;?>" class="btn btn-default"><i class="fa fa-plus"></i> Add Attachment</a></Td>
@@ -49,4 +66,5 @@
     </td>
 </tr>
 </table>
+</div>
 </body>

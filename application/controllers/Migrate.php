@@ -12,9 +12,7 @@ class Migrate extends CI_Controller
             return;
         }
 
-        // Use timestamp-based migrations so files like
-        // 20260601000000_nhis_phase1_schema.php are discovered.
-        $this->load->library('migration', ['migration_type' => 'timestamp']);
+        $this->load->library('migration');
     }
 
     /**
@@ -28,6 +26,10 @@ class Migrate extends CI_Controller
             echo $this->migration->error_string() . "\n";
             return;
         }
+
+        // Run BrandingInstaller one-time setup
+        $this->load->library('brandinginstaller');
+        $this->brandinginstaller->install();
 
         echo "Migration completed. Current version: {$result}\n";
     }
@@ -52,6 +54,10 @@ class Migrate extends CI_Controller
             echo $this->migration->error_string() . "\n";
             return;
         }
+
+        // Run BrandingInstaller one-time setup
+        $this->load->library('brandinginstaller');
+        $this->brandinginstaller->install();
 
         echo "Migration completed. Current version: {$result}\n";
     }

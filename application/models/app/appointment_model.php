@@ -253,6 +253,7 @@ class Appointment_model extends CI_Model{
 
 
 		$fullTime = $this->input->post('appHour').":".$this->input->post('appMinutes')." ".$this->input->post('appAMPM');
+		$appointmentTime = date("H:i:s", strtotime($fullTime));
 
 		$this->data = array(
 			'patient_no'			=>		$this->input->post('patientID'),
@@ -262,7 +263,7 @@ class Appointment_model extends CI_Model{
 			'appAMPM'				=>		$this->input->post('appAMPM'),
 			'consultantDoctor'		=>		$this->input->post('consultantDoctor'),
 			'appointmentReason'		=>		$this->input->post('appointmentReason'),
-			'appointmentTime'		=>		$fullTime,
+			'appointmentTime'		=>		$appointmentTime,
 			'appointmentStatus'		=>		'A',
 			'dateEntry'				=>		date('Y-m-d')
 		);
@@ -467,13 +468,17 @@ class Appointment_model extends CI_Model{
 	{
 		$this->db->where(array('appID'			=>		$this->input->post('id')));
 
+		$fullTime = $this->input->post('appHour').":".$this->input->post('appMinutes')." ".$this->input->post('appAMPM');
+		$appointmentTime = date("H:i:s", strtotime($fullTime));
+
 		$this->data = array(
 				'appointmentDate'	 =>	 $this->input->post('dateAppointment'),
 				'appHour'	 		 =>	 $this->input->post('appHour'),
 				'appMinutes'	 	 =>	 $this->input->post('appMinutes'),
 				'appAMPM'	 		 =>	 $this->input->post('appAMPM'),
 				'consultantDoctor'	 =>	 $this->input->post('consultantDoctor'),
-				'appointmentReason'	 =>	 $this->input->post('appointmentReason')
+				'appointmentReason'	 =>	 $this->input->post('appointmentReason'),
+				'appointmentTime'	 =>	 $appointmentTime
 			);
 
 		$this->db->update("patient_appointment",$this->data);

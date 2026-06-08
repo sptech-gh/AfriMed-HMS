@@ -153,34 +153,36 @@
 											<?php }}?>
                                             <a href="<?php echo base_url()?>app/ipd_print/print_complain/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
                                             <a href="<?php echo base_url()?>app/ipd_print/pdf_complain/<?php echo $getOPDPatient->IO_ID;?>/<?php echo $getOPDPatient->patient_no;?>" class="btn btn-success" target="_blank"><i class="fa fa-print"></i> PDF</a>
-                                           <table class="table table-hover table-striped">
-                                           <thead>
-                                           <tr>
-                                           		<th>Complain</th>
-                                           		<th>Complain (Others)</th>
-                                                <th>Remarks</th>
-                                                <th></th>
-                                           </tr>
-                                           </thead>
-                                           <tbody>
-                                           <?php foreach($patientComplain as $patientComplain){?>
-                                           <tr>
-                                           		<td><?php echo $patientComplain->complain_name?></td>
-                                           		<td><?php echo $patientComplain->complain_text?></td>
-                                                <td><?php echo $patientComplain->remarks?></td>
-                                                <td>
-                                                <?php if($this->session->userdata('emr_viewing') == ""){?>	
-                                                <?php if($canEditClinical && $getOPDPatient->nStatus == "Pending"){?>
-                                                <form method="post" action="<?php echo base_url()?>app/ipd/delete_complain/<?php echo $patientComplain->iop_comp_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID) ?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove?');">
-                                                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
-                                                    <button type="submit" class="btn btn-xs btn-danger">Remove</button>
-                                                </form>
-                                                <?php }}?>
-                                                </td>
-                                           </tr>
-                                           <?php }?>
-                                           </tbody>
-                                           </table>
+                                            <div class="table-responsive">
+                                            <table class="table table-hover table-striped">
+                                            <thead>
+                                            <tr>
+                                            		<th>Complain</th>
+                                            		<th>Complain (Others)</th>
+                                                 <th>Remarks</th>
+                                                 <th></th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach($patientComplain as $patientComplain){?>
+                                            <tr>
+                                            		<td><?php echo $patientComplain->complain_name?></td>
+                                            		<td><?php echo $patientComplain->complain_text?></td>
+                                                 <td><?php echo $patientComplain->remarks?></td>
+                                                 <td>
+                                                 <?php if($this->session->userdata('emr_viewing') == ""){?>	
+                                                 <?php if($canEditClinical && $getOPDPatient->nStatus == "Pending"){?>
+                                                 <form method="post" action="<?php echo base_url()?>app/ipd/delete_complain/<?php echo $patientComplain->iop_comp_id?>/<?php echo url_safe_id($getOPDPatient->IO_ID) ?>/<?php echo $getOPDPatient->patient_no?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove?');">
+                                                     <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                                                     <button type="submit" class="btn btn-xs btn-danger">Remove</button>
+                                                 </form>
+                                                 <?php }}?>
+                                                 </td>
+                                            </tr>
+                                            <?php }?>
+                                            </tbody>
+                                            </table>
+                                            </div>
                                             
                                             <br><br><br><br><br><br><br>
                                             <br><br><br><br><br><br><br>
@@ -333,13 +335,13 @@
                                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                                             <h4 class="modal-title" id="myModalLabel">Complain</h4>
                                         </div>
-                                        <div class="modal-body">
+                                        <div class="modal-body">                                        <div class="table-responsive">
                                         <table class="table table-hover">
                                         <tbody>
                                         <tr>
                                         	<td>Complaints</td>
                                             <td>
-                                           <select name="complain" id="complain" style="width: 100%;" required class="form-control input-sm" onchange="otherOptions(this.value)">
+                                            <select name="complain" id="complain" style="width: 100%;" required class="form-control input-sm" onchange="otherOptions(this.value)">
                                                             	<option value="">- Complaints -</option>
                                                                 <option value="others">Others</option>
                                                             	<?php 
@@ -359,6 +361,7 @@
                                         </tr>
                                         </tbody>
                                         </table>
+                                        </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

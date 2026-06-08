@@ -48,6 +48,7 @@
                             <h3 class="box-title"><i class="fa fa-user"></i> Patient Info</h3>
                         </div>
                         <div class="box-body">
+                            <div class="table-responsive">
                             <table class="table table-condensed">
                                 <tr>
                                     <td><strong>Patient No:</strong></td>
@@ -73,6 +74,7 @@
                                     </td>
                                 </tr>
                             </table>
+                            </div>
                         </div>
                     </div>
                 </div>

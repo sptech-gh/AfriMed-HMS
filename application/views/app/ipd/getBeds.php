@@ -35,7 +35,7 @@
                                   } else {
                                     $patient = $getBeds->patient;
                                   }
-                                  if (date("M d, Y", strtotime($getBeds->date_visit)) == "Jan 01, 1970") {
+                                  if (empty($getBeds->date_visit) || $getBeds->date_visit === '0000-00-00 00:00:00' || strtotime($getBeds->date_visit) <= 0) {
                                     $date_visit = "-";
                                   } else {
                                     $date_visit = date("M d, Y", strtotime($getBeds->date_visit)) . " " . $getBeds->time_visit;

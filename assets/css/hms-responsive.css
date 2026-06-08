@@ -1,0 +1,449 @@
+/* === GLOBAL FOUNDATION === */
+
+/* Prevent horizontal overflow on the body */
+html, body {
+  overflow-x: hidden !important;
+  width: 100%;
+}
+
+/* Ensure images don't overflow their containers */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fluid content container fixes */
+.wrapper, .content, .container-fluid {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Responsive display helper utilities (bringing BS4+ classes to BS3) */
+.d-none {
+  display: none !important;
+}
+
+.d-md-block,
+.d-md-inline-block,
+.d-md-table-cell {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .d-md-block {
+    display: block !important;
+  }
+  .d-md-inline-block {
+    display: inline-block !important;
+  }
+  .d-md-table-cell {
+    display: table-cell !important;
+  }
+  .d-md-none {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .d-none-mobile {
+    display: none !important;
+  }
+  .d-block-mobile {
+    display: block !important;
+  }
+}
+
+
+/* === NAVIGATION === */
+
+/* Fix logo2 fixed-width overflow on smaller screens */
+@media (max-width: 767px) {
+  .logo2 {
+    width: auto !important;
+    max-width: calc(100% - 160px) !important; /* Leave room for toggle button and right menu */
+    font-size: 16px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 5px !important;
+  }
+  
+  /* Make header and logo wrap gracefully on extra small screens */
+  body > .header .logo {
+    width: 100% !important;
+    text-align: center !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .logo2 {
+    max-width: calc(100% - 100px) !important;
+    font-size: 14px !important;
+  }
+}
+
+
+/* === TABLES — GLOBAL === */
+
+/* Ensure table-responsive doesn't crop box shadows or wrap poorly */
+.table-responsive {
+  width: 100%;
+  margin-bottom: 15px;
+  overflow-y: hidden;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+  border: 1px solid var(--hms-border, #ddd);
+}
+
+
+/* === TABLES — NURSING (card layout) === */
+
+/* Card layout conversion for critical bedside tables on mobile devices */
+@media (max-width: 575px) {
+  .nursing-table thead {
+    display: none !important;
+  }
+  .nursing-table tr {
+    display: block !important;
+    margin-bottom: 1rem !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 4px !important;
+    padding: 0.5rem !important;
+    background: #ffffff;
+  }
+  .nursing-table td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.5rem 0.25rem !important;
+    border: none !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    text-align: right !important;
+  }
+  .nursing-table td:last-child {
+    border-bottom: none !important;
+  }
+  .nursing-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #495057;
+    margin-right: 1rem;
+    white-space: nowrap;
+    float: left;
+    text-align: left;
+  }
+}
+
+
+/* === FORMS === */
+
+/* Form group full-width behaviors for phone viewports */
+@media (max-width: 767px) {
+  .form-group, .form-row > [class*="col"] {
+    width: 100% !important;
+    float: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-bottom: 10px;
+  }
+  input, select, textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
+
+/* === MODALS === */
+
+/* Fullscreen modal scaling for mobile touch targets */
+@media (max-width: 575px) {
+  .modal-dialog {
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .modal-content {
+    height: 100% !important;
+    border: none !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-grow: 1;
+  }
+}
+
+
+/* === DASHBOARD CARDS === */
+
+/* Responsive card grid layout adjustments */
+@media (max-width: 767px) {
+  .small-box {
+    margin-bottom: 15px !important;
+  }
+}
+
+/* === RESPONSIVE FORM TABLES (For table-based forms like in opdReg.php) === */
+@media (max-width: 767px) {
+  /* Stack tables used for form layouts (not standard data tables) */
+  .tab-content table:not(.table), 
+  .tab-content table:not(.table) tbody, 
+  .tab-content table:not(.table) tr, 
+  .tab-content table:not(.table) td,
+  .box-body table:not(.table),
+  .box-body table:not(.table) tbody,
+  .box-body table:not(.table) tr,
+  .box-body table:not(.table) td {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+    box-sizing: border-box;
+  }
+  
+  .tab-content table:not(.table) td,
+  .box-body table:not(.table) td {
+    padding: 6px 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Make input fields inside stacked tables fill the width */
+  .tab-content input,
+  .tab-content select,
+  .tab-content textarea,
+  .box-body table input,
+  .box-body table select,
+  .box-body table textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  
+  /* Mobile Patient Info Banner centering */
+  .box-body.table-responsive table:not(.table),
+  .box-body.table-responsive table:not(.table) tr,
+  .box-body.table-responsive table:not(.table) td {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+  
+  .box-body.table-responsive td img {
+    margin: 0 auto 10px auto !important;
+  }
+}
+
+/* Align text-right elements to the left on small screens to fit stacked layout */
+@media (max-width: 992px) {
+  .quick-search-bar .text-right,
+  .patient-header .text-right {
+    text-align: left !important;
+    margin-top: 10px;
+  }
+
+  /* Force full width and 0 margin when sidebar is collapsed on mobile/tablet viewports */
+  .right-side,
+  .content-wrapper,
+  body > .header .navbar {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* === SMALL LAPTOP SCALING OVERRIDES (<= 1440px) === */
+@media (max-width: 1440px) {
+  body {
+    font-size: 13.5px !important;
+  }
+  h1, .h1 { font-size: 24px !important; }
+  h2, .h2 { font-size: 20px !important; }
+  h3, .h3 { font-size: 18px !important; }
+  h4, .h4 { font-size: 16px !important; }
+
+  /* Header Scaling */
+  body > .header {
+    height: 44px !important;
+  }
+  @media (min-width: 993px) {
+    body > .header .logo {
+      width: 200px !important;
+    }
+  }
+  body > .header .logo {
+    height: 44px !important;
+    line-height: 44px !important;
+  }
+  body > .header .logo img {
+    max-height: 26px !important;
+  }
+  body > .header .logo span {
+    font-size: 13px !important;
+  }
+  @media (min-width: 993px) {
+    body > .header .navbar {
+      margin-left: 200px !important;
+    }
+  }
+  body > .header .navbar {
+    min-height: 44px !important;
+    height: 44px !important;
+  }
+  body > .header .navbar .navbar-right .nav > li > a,
+  body > .header .navbar .sidebar-toggle,
+  body > .header .logo2 {
+    height: 44px !important;
+    line-height: 44px !important;
+  }
+  body > .header .navbar .sidebar-toggle {
+    padding: 13px 15px !important;
+  }
+  body > .header .navbar .navbar-right .nav > li > a {
+    padding-top: 13px !important;
+    padding-bottom: 13px !important;
+  }
+  body > .header .navbar .logo2 .facility-header-name {
+    font-size: 15px !important;
+  }
+  body > .header .navbar .logo2 .platform-power-badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+  body > .header .navbar .user-menu > a {
+    height: 44px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  body > .header .navbar .user-menu > a span span {
+    font-size: 12px !important;
+  }
+  body > .header .navbar .user-menu > a span small {
+    font-size: 9px !important;
+  }
+  body > .header .navbar .user-menu > a i {
+    font-size: 18px !important;
+  }
+  body > .header .navbar .user-menu > a img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  /* Sidebar Scaling */
+  @media (min-width: 993px) {
+    .left-side, .main-sidebar {
+      width: 200px !important;
+    }
+    .right-side:not(.strech), .content-wrapper:not(.strech) {
+      margin-left: 200px !important;
+    }
+    .right-side.strech, .content-wrapper.strech {
+      margin-left: 0 !important;
+    }
+  }
+  body.skin-blue .sidebar-menu > li > a {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+  body.skin-blue .sidebar-menu > li > a i {
+    font-size: 14px !important;
+  }
+  body.skin-blue .sidebar-menu .treeview-menu > li > a {
+    padding: 6px 6px 6px 22px !important;
+    font-size: 12px !important;
+  }
+  body.skin-blue .hms-sidebar-search .form-control {
+    height: 30px !important;
+    font-size: 12px !important;
+  }
+
+  /* Content Layout Padding & Margins */
+  .content-header {
+    margin: 10px 10px 12px 10px !important;
+    padding: 10px 15px !important;
+  }
+  .content-header h1 {
+    font-size: 18px !important;
+  }
+  .content {
+    padding: 0 10px 10px 10px !important;
+  }
+
+  /* Small Boxes (Dashboard Cards) */
+  .small-box {
+    margin-bottom: 12px !important;
+  }
+  .small-box .inner h3 {
+    font-size: 22px !important;
+    margin-bottom: 2px !important;
+  }
+  .small-box .inner p {
+    font-size: 12px !important;
+  }
+  .small-box .icon {
+    font-size: 44px !important;
+    top: 2px !important;
+    right: 10px !important;
+  }
+  .small-box .small-box-footer {
+    padding: 3px 0 !important;
+    font-size: 11px !important;
+  }
+
+  /* Form Elements, Inputs & Buttons */
+  .form-control,
+  .select2-container--default .select2-selection--single,
+  .dataTables_wrapper .dataTables_filter input,
+  .dataTables_wrapper .dataTables_length select {
+    height: 32px !important;
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+  .select2-container--default .select2-selection--single {
+    padding: 2px 8px !important;
+  }
+  .btn {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    min-height: 32px !important;
+  }
+  .btn-lg {
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+    min-height: 40px !important;
+  }
+  .form-group {
+    margin-bottom: 12px !important;
+  }
+  .form-group label,
+  .control-label {
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Card/Box Widgets */
+  .box {
+    margin-bottom: 12px !important;
+  }
+  .box-header.with-border {
+    padding: 10px 15px !important;
+  }
+  .box-header .box-title {
+    font-size: 14px !important;
+  }
+  .box-body {
+    padding: 10px 15px !important;
+  }
+
+  /* Tables Scaling */
+  .table thead th {
+    font-size: 11px !important;
+    padding: 8px 12px !important;
+  }
+  .table tbody td {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+}
