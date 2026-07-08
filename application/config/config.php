@@ -351,7 +351,7 @@ $config['csrf_exclude_uris'] = array(
 	'login',
 	'login/validate_login',
 	'login/index',
-	
+	'app/backup/backup_database'
 );
 
 /*
