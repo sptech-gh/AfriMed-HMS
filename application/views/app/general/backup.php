@@ -64,6 +64,7 @@
                         	<div class="box-body table-responsive">
                              
                              <form method="post" action="<?php echo base_url()?>app/backup/backup_database" onSubmit="return confirm('Are you sure you want to backup database?');">
+                                 <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>" />
           
                              <p class="help">Note: Please keep backup database file to your local/file server or any directory that anyone can't access it. </p>
                              <p>Click Backup Database Button to download backup file of your database. This may take less than a minute depend on your network or internet connection.</p>
