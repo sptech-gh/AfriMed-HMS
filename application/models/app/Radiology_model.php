@@ -11,6 +11,47 @@ class Radiology_model extends CI_Model
     {
         parent::__construct();
         $this->load->database();
+        $this->align_radiology_collation();
+    }
+
+    private function align_radiology_collation()
+    {
+        if ($this->table_exists('radiology_orders')) {
+            $col_info = $this->db->query("
+                SELECT COLLATION_NAME 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                  AND TABLE_NAME = 'radiology_orders' 
+                  AND COLUMN_NAME = 'patient_no'
+            ")->row();
+            if ($col_info && isset($col_info->COLLATION_NAME) && $col_info->COLLATION_NAME !== 'utf8mb4_unicode_ci') {
+                $this->db->query("ALTER TABLE radiology_orders CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            }
+        }
+        if ($this->table_exists('radiology_test_master')) {
+            $col_info = $this->db->query("
+                SELECT COLLATION_NAME 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                  AND TABLE_NAME = 'radiology_test_master' 
+                  AND COLUMN_NAME = 'test_name'
+            ")->row();
+            if ($col_info && isset($col_info->COLLATION_NAME) && $col_info->COLLATION_NAME !== 'utf8mb4_unicode_ci') {
+                $this->db->query("ALTER TABLE radiology_test_master CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            }
+        }
+        if ($this->table_exists('radiology_results')) {
+            $col_info = $this->db->query("
+                SELECT COLLATION_NAME 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                  AND TABLE_NAME = 'radiology_results' 
+                  AND COLUMN_NAME = 'findings'
+            ")->row();
+            if ($col_info && isset($col_info->COLLATION_NAME) && $col_info->COLLATION_NAME !== 'utf8mb4_unicode_ci') {
+                $this->db->query("ALTER TABLE radiology_results CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            }
+        }
     }
 
 	public function lock_radiology_request_for_update($order_id)
