@@ -159,8 +159,8 @@ header("Pragma: no-cache");
                                                     <?php } ?>
                                                 </td>
                                                 <td>
-                                                    <a href="<?php echo base_url();?>app/cashier/print_receipt/<?php echo $pay->receipt_no; ?>" class="btn btn-xs btn-default" target="_blank"><i class="fa fa-print"></i></a>
-                                                    <a href="<?php echo base_url();?>app/cashier/pdf_receipt/<?php echo $pay->receipt_no; ?>" class="btn btn-xs btn-info" target="_blank"><i class="fa fa-file-pdf-o"></i></a>
+                                                    <a href="<?php echo base_url();?>app/cashier/print_receipt/<?php echo $pay->receipt_no; ?>" class="btn btn-xs btn-default" target="_blank" style="margin-right: 2px;"><i class="fa fa-print"></i> Thermal</a>
+                                                    <a href="<?php echo base_url();?>app/cashier/pdf_receipt/<?php echo $pay->receipt_no; ?>" class="btn btn-xs btn-info" target="_blank" style="margin-right: 2px;"><i class="fa fa-file-text-o"></i> PDF</a>
                                                     <?php if (isset($can_refund) && $can_refund) { ?>
                                                         <?php
                                                             $isRefundRow = (isset($pay->payment_method) && strtoupper(trim((string)$pay->payment_method)) === 'REFUND') || ((float)$pay->amount < 0);
@@ -173,7 +173,7 @@ header("Pragma: no-cache");
                                                             $canRefund = (!$isRefundRow && !$isVoidedRow && (float)$pay->amount > 0 && $remaining > 0.009);
                                                         ?>
                                                         <?php if ($canRefund) { ?>
-                                                            <button type="button" class="btn btn-xs btn-warning btn-refund" data-receipt="<?php echo $pay->receipt_no; ?>" data-remaining="<?php echo number_format((float)$remaining, 2, '.', ''); ?>"><i class="fa fa-undo"></i></button>
+                                                            <button type="button" class="btn btn-xs btn-warning btn-refund" data-receipt="<?php echo $pay->receipt_no; ?>" data-remaining="<?php echo number_format((float)$remaining, 2, '.', ''); ?>"><i class="fa fa-undo"></i> Refund</button>
                                                         <?php } ?>
                                                     <?php } ?>
                                                 </td>
