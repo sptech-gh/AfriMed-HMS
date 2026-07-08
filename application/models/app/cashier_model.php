@@ -5,14 +5,14 @@ class Cashier_model extends CI_Model
 	public function __construct()
 	{
 		parent::__construct();
+		$this->align_cashier_collation();
 	}
 
 	/**
-	 * Ensure required schema exists
+	 * Align cashier tables to match legacy collation (utf8mb4_unicode_ci)
 	 */
-	public function ensure_cashier_schema()
+	public function align_cashier_collation()
 	{
-		// Collation alignment helper: ensure newly-created/imported cashier tables align with legacy utf8mb4_unicode_ci collation
 		if ($this->table_exists('cashier_payment_log')) {
 			$col_info = $this->db->query("
 				SELECT COLLATION_NAME 
@@ -37,7 +37,13 @@ class Cashier_model extends CI_Model
 				}
 			}
 		}
+	}
 
+	/**
+	 * Ensure required schema exists
+	 */
+	public function ensure_cashier_schema()
+	{
 		if (schema_already_run('cashier_schema')) {
 			$this->_ensure_cashier_performance_indexes();
 			return;
