@@ -12,6 +12,32 @@ class Cashier_model extends CI_Model
 	 */
 	public function ensure_cashier_schema()
 	{
+		// Collation alignment helper: ensure newly-created/imported cashier tables align with legacy utf8mb4_unicode_ci collation
+		if ($this->table_exists('cashier_payment_log')) {
+			$col_info = $this->db->query("
+				SELECT COLLATION_NAME 
+				FROM information_schema.COLUMNS 
+				WHERE TABLE_SCHEMA = DATABASE() 
+				  AND TABLE_NAME = 'cashier_payment_log' 
+				  AND COLUMN_NAME = 'invoice_no'
+			")->row();
+			if ($col_info && isset($col_info->COLLATION_NAME) && $col_info->COLLATION_NAME !== 'utf8mb4_unicode_ci') {
+				$this->db->query("ALTER TABLE cashier_payment_log CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+				if ($this->table_exists('payment_methods')) {
+					$this->db->query("ALTER TABLE payment_methods CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+				}
+				if ($this->table_exists('financial_audit_log')) {
+					$this->db->query("ALTER TABLE financial_audit_log CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+				}
+				if ($this->table_exists('cashier_refund_log')) {
+					$this->db->query("ALTER TABLE cashier_refund_log CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+				}
+				if ($this->table_exists('payment_dispatch_notifications')) {
+					$this->db->query("ALTER TABLE payment_dispatch_notifications CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+				}
+			}
+		}
+
 		if (schema_already_run('cashier_schema')) {
 			$this->_ensure_cashier_performance_indexes();
 			return;
@@ -42,7 +68,7 @@ class Cashier_model extends CI_Model
 					INDEX idx_patient (patient_no),
 					INDEX idx_date (payment_date),
 					INDEX idx_cashier (cashier_id)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 			");
 		}
 
@@ -56,7 +82,7 @@ class Cashier_model extends CI_Model
 					requires_reference TINYINT(1) DEFAULT 0,
 					is_active TINYINT(1) DEFAULT 1,
 					sort_order INT DEFAULT 0
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 			");
 
 			// Insert default payment methods
@@ -90,7 +116,7 @@ class Cashier_model extends CI_Model
 					INDEX idx_invoice (invoice_no),
 					INDEX idx_date (performed_at),
 					INDEX idx_user (performed_by)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 			");
 		}
 
@@ -112,7 +138,7 @@ class Cashier_model extends CI_Model
 					INDEX idx_invoice (invoice_no),
 					INDEX idx_patient (patient_no),
 					INDEX idx_date (refunded_at)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 			");
 		}
 
@@ -135,7 +161,7 @@ class Cashier_model extends CI_Model
 					INDEX idx_receipt (receipt_no),
 					INDEX idx_patient (patient_no),
 					INDEX idx_dept_status (department, status)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 			");
 		}
 
