@@ -6,6 +6,35 @@ class Procedure_unit_model extends CI_Model
 	{
 		parent::__construct();
 		$this->load->database();
+		$this->align_procedure_collation();
+	}
+
+	private function align_procedure_collation()
+	{
+		if ($this->db->table_exists('iop_procedure_request')) {
+			$col_info = $this->db->query("
+				SELECT COLLATION_NAME 
+				FROM information_schema.COLUMNS 
+				WHERE TABLE_SCHEMA = DATABASE() 
+				  AND TABLE_NAME = 'iop_procedure_request' 
+				  AND COLUMN_NAME = 'patient_no'
+			")->row();
+			if ($col_info && isset($col_info->COLLATION_NAME) && $col_info->COLLATION_NAME !== 'utf8mb4_unicode_ci') {
+				$this->db->query("ALTER TABLE iop_procedure_request CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+			}
+		}
+		if ($this->db->table_exists('billing_transactions')) {
+			$col_info = $this->db->query("
+				SELECT COLLATION_NAME 
+				FROM information_schema.COLUMNS 
+				WHERE TABLE_SCHEMA = DATABASE() 
+				  AND TABLE_NAME = 'billing_transactions' 
+				  AND COLUMN_NAME = 'item_ref'
+			")->row();
+			if ($col_info && isset($col_info->COLLATION_NAME) && $col_info->COLLATION_NAME !== 'utf8mb4_unicode_ci') {
+				$this->db->query("ALTER TABLE billing_transactions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+			}
+		}
 	}
 
 	public function ensure_schema()
