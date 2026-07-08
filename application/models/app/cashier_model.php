@@ -13,6 +13,30 @@ class Cashier_model extends CI_Model
 	 */
 	public function align_cashier_collation()
 	{
+		// Ensure payment_dispatch_notifications table exists (handles schema updates on existing runs)
+		if (!$this->table_exists('payment_dispatch_notifications')) {
+			$this->db->query("
+				CREATE TABLE IF NOT EXISTS payment_dispatch_notifications (
+					notification_id INT AUTO_INCREMENT PRIMARY KEY,
+					invoice_no VARCHAR(50) NOT NULL,
+					receipt_no VARCHAR(50) NOT NULL,
+					patient_no VARCHAR(25) NOT NULL,
+					patient_name VARCHAR(255),
+					department VARCHAR(50) NOT NULL,
+					item_details TEXT,
+					status ENUM('PENDING', 'DISPATCHED', 'CANCELLED') DEFAULT 'PENDING',
+					created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+					dispatched_at DATETIME,
+					dispatched_by VARCHAR(25),
+					InActive TINYINT(1) DEFAULT 0,
+					INDEX idx_invoice (invoice_no),
+					INDEX idx_receipt (receipt_no),
+					INDEX idx_patient (patient_no),
+					INDEX idx_dept_status (department, status)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+			");
+		}
+
 		if ($this->table_exists('cashier_payment_log')) {
 			$col_info = $this->db->query("
 				SELECT COLLATION_NAME 
