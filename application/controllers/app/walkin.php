@@ -190,12 +190,219 @@ public function save_consultation_type()
     redirect(base_url() . 'app/walkin/consultation_types');
 }
 
+    /* ═══════════════════════════════════════════════════════
+     * SAVE TRANSACTION (multi-service grouped mode)
+     * ═══════════════════════════════════════════════════════ */
+
     public function save_transaction()
     {
-        $client_id   = (int)$this->input->post('walkin_client_id');
+        $client_id      = (int)$this->input->post('walkin_client_id');
+        $payment_method = trim((string)$this->input->post('payment_method'));
+        $payment_status = $this->input->post('payment_status') ?: 'Paid';
+        $notes          = $this->input->post('notes');
+        $cashier_id     = $this->session->userdata('user_id');
+        $cashier_name   = $this->session->userdata('username');
+
+        if ($client_id <= 0) {
+            $this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-warning'></i> Invalid client.</div>");
+            redirect(base_url() . 'app/walkin/register');
+            return;
+        }
+
+        // ── Multi-service mode (new grouped billing) ───────────────────────
+        if ($this->input->post('multi_service_mode') == '1') {
+            $cart_raw = $this->input->post('cart_json');
+            $cart = @json_decode($cart_raw, true);
+            if (!is_array($cart) || count($cart) === 0) {
+                $this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-warning'></i> No items submitted. Please add at least one service item.</div>");
+                redirect(base_url() . 'app/walkin/add_transaction/' . $client_id);
+                return;
+            }
+
+            // Block NHIS when Pharmacy is in cart
+            if (isset($cart['Pharmacy']) && strtoupper($payment_method) === 'NHIS') {
+                $this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-warning'></i> NHIS is not allowed when Pharmacy items are included.</div>");
+                redirect(base_url() . 'app/walkin/add_transaction/' . $client_id);
+                return;
+            }
+
+            $saved_txn_ids = array();
+            $errors        = array();
+
+            // ── Save each service type ─────────────────────────────────────
+            foreach ($cart as $svc_type => $items) {
+                $svc_type = trim((string)$svc_type);
+                if ($svc_type === '' || !is_array($items) || count($items) === 0) continue;
+
+                if ($svc_type === 'Pharmacy') {
+                    // Pharmacy uses walkin_order flow
+                    $this->load->model('app/pharmacy_model');
+                    $client = $this->walkin_model->get_client($client_id);
+                    $wo_items = array();
+                    foreach ($items as $it) {
+                        $drug_id    = isset($it['drug_id'])    ? (int)$it['drug_id']      : 0;
+                        $qty        = isset($it['qty'])        ? (float)$it['qty']         : 0.0;
+                        $unit_price = isset($it['unit_price']) ? (float)$it['unit_price']  : 0.0;
+                        if ($drug_id <= 0 || $qty <= 0) continue;
+                        $drug      = $this->pharmacy_model->get_drug_stock($drug_id);
+                        $drug_name = ($drug && isset($drug->drug_name)) ? (string)$drug->drug_name : ('Drug #' . $drug_id);
+                        $wo_items[] = array(
+                            'department'          => 'PHARMACY',
+                            'item_type'           => 'PHARMACY',
+                            'catalog_ref'         => 'drug_id:' . $drug_id,
+                            'item_name'           => $drug_name,
+                            'quantity'            => $qty,
+                            'unit_price'          => $unit_price,
+                            'pricing_source_type' => 'CUSTOM',
+                        );
+                    }
+                    if (empty($wo_items)) {
+                        $errors[] = 'Pharmacy: no valid drug items.';
+                        continue;
+                    }
+
+                    $create = $this->walkin_order_model->create_walkin_order_with_items(array(
+                        'walkin_client_id' => $client_id,
+                        'customer_name'    => ($client && isset($client->client_name)) ? (string)$client->client_name : null,
+                        'phone'            => ($client && isset($client->phone))       ? (string)$client->phone       : null,
+                        'gender'           => ($client && isset($client->gender))      ? (string)$client->gender      : null,
+                        'transaction_type' => 'WALKIN-PHARMACY',
+                        'payer_type'       => 'CASH',
+                        'notes'            => $notes,
+                    ), $wo_items, (string)$cashier_id);
+
+                    if (!$create || empty($create['success'])) {
+                        $errors[] = 'Pharmacy: ' . (isset($create['error']) ? $create['error'] : 'order creation failed.');
+                        continue;
+                    }
+
+                    $walkin_order_id = isset($create['walkin_order_id']) ? (string)$create['walkin_order_id'] : '';
+                    if ($walkin_order_id === '') {
+                        $errors[] = 'Pharmacy: could not retrieve order ID.';
+                        continue;
+                    }
+
+                    $this->load->model('app/unified_billing_model');
+                    $this->unified_billing_model->retry_failed_queue_by_subject('WALKIN_ORDER', $walkin_order_id, null, $cashier_id);
+                    $invoice = $this->unified_billing_model->generate_invoice_by_subject('WALKIN_ORDER', $walkin_order_id, null, $cashier_id);
+                    if (!$invoice || empty($invoice['success']) || empty($invoice['invoice_no'])) {
+                        $errors[] = 'Pharmacy: ' . (isset($invoice['error']) ? $invoice['error'] : 'invoice generation failed.');
+                        continue;
+                    }
+
+                    $invoice_no = (string)$invoice['invoice_no'];
+                    $this->db->where('walkin_order_id', $walkin_order_id);
+                    $this->db->where('InActive', 0);
+                    $this->db->update('walkin_orders', array('invoice_no' => $invoice_no, 'payment_status' => 'INVOICED'));
+
+                    if ($payment_status === 'Paid') {
+                        $pay = $this->unified_billing_model->process_payment_by_subject(
+                            'WALKIN_ORDER', $walkin_order_id, $invoice_no,
+                            isset($create['net_amount']) ? (float)$create['net_amount'] : 0.0,
+                            $payment_method, $cashier_id, null, $notes
+                        );
+                        if ($pay && !empty($pay['success'])) {
+                            $receipt_no = isset($pay['receipt_no']) ? (string)$pay['receipt_no'] : '';
+                            try {
+                                $this->walkin_order_model->mark_order_paid_authorized($walkin_order_id, $receipt_no, $cashier_id);
+                            } catch (\Throwable $e) {
+                                log_message('error', 'walkin grouped save_transaction pharmacy sync: ' . $e->getMessage());
+                            }
+                        } else {
+                            $errors[] = 'Pharmacy: invoice created but payment failed — ' . (isset($pay['error']) ? $pay['error'] : 'unknown');
+                        }
+                    }
+
+                    // Record pharmacy txn_id for grouped receipt (use walkin_order internal_id as proxy)
+                    // We also insert a walkin_transactions shadow row so grouped receipt can load it uniformly.
+                    $pharm_total = 0.0;
+                    foreach ($wo_items as $wi) { $pharm_total += (float)$wi['quantity'] * (float)$wi['unit_price']; }
+                    $desc_parts = array();
+                    foreach ($wo_items as $wi) { $desc_parts[] = $wi['item_name'] . ' x' . $wi['quantity']; }
+                    $receipt_num = $this->walkin_model->generate_receipt_number();
+                    $this->db->insert('walkin_transactions', array(
+                        'walkin_client_id' => $client_id,
+                        'service_type'     => 'Pharmacy',
+                        'description'      => implode(', ', $desc_parts),
+                        'amount'           => round($pharm_total, 2),
+                        'payment_method'   => $payment_method,
+                        'payment_status'   => $payment_status,
+                        'receipt_number'   => $receipt_num,
+                        'transaction_date' => date('Y-m-d H:i:s'),
+                        'cashier_id'       => (string)$cashier_id,
+                        'cashier_name'     => (string)$cashier_name,
+                        'notes'            => $notes,
+                    ));
+                    $pharm_txn_id = (int)$this->db->insert_id();
+                    // Insert pharmacy items into walkin_transaction_items for receipt display
+                    if ($pharm_txn_id > 0) {
+                        foreach ($wo_items as $wi) {
+                            $drug_id_k = (int)str_replace('drug_id:', '', $wi['catalog_ref']);
+                            $this->db->insert('walkin_transaction_items', array(
+                                'txn_id'     => $pharm_txn_id,
+                                'drug_id'    => $drug_id_k,
+                                'drug_name'  => $wi['item_name'],
+                                'qty'        => (float)$wi['quantity'],
+                                'unit_price' => (float)$wi['unit_price'],
+                                'line_total' => round((float)$wi['quantity'] * (float)$wi['unit_price'], 2),
+                            ));
+                        }
+                        $saved_txn_ids[] = $pharm_txn_id;
+                    }
+
+                } else {
+                    // Non-pharmacy catalog service
+                    $catalog_items_input = array();
+                    foreach ($items as $it) {
+                        $item_id = isset($it['item_id']) ? (int)$it['item_id'] : 0;
+                        $qty     = isset($it['qty'])     ? (float)$it['qty']   : 0.0;
+                        if ($item_id <= 0 || $qty <= 0) continue;
+                        $catalog_items_input[] = array('item_id' => $item_id, 'qty' => $qty);
+                    }
+                    if (empty($catalog_items_input)) {
+                        $errors[] = $svc_type . ': no valid items.';
+                        continue;
+                    }
+
+                    $result = $this->walkin_model->add_catalog_service_transaction(array(
+                        'walkin_client_id'  => $client_id,
+                        'service_type'      => $svc_type,
+                        'payment_method'    => $payment_method,
+                        'payment_status'    => $payment_status,
+                        'notes'             => $notes,
+                        'extra_description' => '',
+                        'cashier_id'        => $cashier_id,
+                        'cashier_name'      => $cashier_name,
+                    ), $catalog_items_input);
+
+                    if (!$result || empty($result['success'])) {
+                        $errors[] = $svc_type . ': ' . (isset($result['error']) ? $result['error'] : 'save failed.');
+                        continue;
+                    }
+                    $saved_txn_ids[] = (int)$result['id'];
+                }
+            }
+
+            if (empty($saved_txn_ids)) {
+                $err_msg = !empty($errors) ? implode(' | ', $errors) : 'No transactions were saved.';
+                $this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-warning'></i> " . htmlspecialchars($err_msg) . "</div>");
+                redirect(base_url() . 'app/walkin/add_transaction/' . $client_id);
+                return;
+            }
+
+            // Flash partial errors (if some services failed but at least one succeeded)
+            if (!empty($errors)) {
+                $this->session->set_flashdata('message', "<div class='alert alert-warning'><i class='fa fa-warning'></i> Some services had errors: " . htmlspecialchars(implode(' | ', $errors)) . "</div>");
+            }
+
+            $ids_str = implode(',', $saved_txn_ids);
+            redirect(base_url() . 'app/walkin/grouped_receipt/' . $client_id . '/' . $ids_str);
+            return;
+        }
+
+        // ── Legacy single-service mode (backward compat) ───────────────────
         $service_type = trim((string)$this->input->post('service_type'));
-        $description = trim((string)$this->input->post('description'));
-        $amount      = (float)$this->input->post('amount');
+        $description  = trim((string)$this->input->post('description'));
 
         if ($service_type === 'Pharmacy') {
             $cashier_id   = $this->session->userdata('user_id');
@@ -519,7 +726,89 @@ public function save_consultation_type()
     }
 
     /* ═══════════════════════════════════════════════════════
-     * RECEIPT
+     * GROUPED RECEIPT (multi-service session)
+     * ═══════════════════════════════════════════════════════ */
+
+    public function grouped_receipt($client_id = 0, $txn_ids_str = '')
+    {
+        $client_id = (int)$client_id;
+        $client    = $this->walkin_model->get_client($client_id);
+        if (!$client) {
+            $this->session->set_flashdata('message', "<div class='alert alert-danger'>Client not found.</div>");
+            redirect(base_url() . 'app/walkin');
+            return;
+        }
+
+        $txn_ids = array_filter(array_map('intval', explode(',', $txn_ids_str)));
+        if (empty($txn_ids)) {
+            $this->session->set_flashdata('message', "<div class='alert alert-danger'>No transactions found.</div>");
+            redirect(base_url() . 'app/walkin');
+            return;
+        }
+
+        $transactions = array();
+        foreach ($txn_ids as $tid) {
+            $txn = $this->walkin_model->get_receipt_data((int)$tid);
+            if ($txn) {
+                $transactions[] = $txn;
+            }
+        }
+
+        if (empty($transactions)) {
+            $this->session->set_flashdata('message', "<div class='alert alert-danger'>Transactions not found.</div>");
+            redirect(base_url() . 'app/walkin');
+            return;
+        }
+
+        if (empty($this->data['companyInfo'])) {
+            $this->data['companyInfo'] = $this->general_model->companyInfo();
+        }
+        $this->data['client']       = $client;
+        $this->data['transactions'] = $transactions;
+        $this->data['txn_ids_str']  = $txn_ids_str;
+        $this->data['message']      = $this->session->flashdata('message');
+        $this->load->view('app/walkin/grouped_receipt', $this->data);
+    }
+
+    public function print_grouped_receipt($client_id = 0, $txn_ids_str = '')
+    {
+        $client_id = (int)$client_id;
+        $client    = $this->walkin_model->get_client($client_id);
+        if (!$client) {
+            redirect(base_url() . 'app/walkin');
+            return;
+        }
+
+        $txn_ids = array_filter(array_map('intval', explode(',', $txn_ids_str)));
+        if (empty($txn_ids)) {
+            redirect(base_url() . 'app/walkin');
+            return;
+        }
+
+        $transactions = array();
+        foreach ($txn_ids as $tid) {
+            $txn = $this->walkin_model->get_receipt_data((int)$tid);
+            if ($txn) {
+                $transactions[] = $txn;
+            }
+        }
+
+        if (empty($transactions)) {
+            redirect(base_url() . 'app/walkin');
+            return;
+        }
+
+        if (empty($this->data['companyInfo'])) {
+            $this->data['companyInfo'] = $this->general_model->companyInfo();
+        }
+        $this->data['client']       = $client;
+        $this->data['transactions'] = $transactions;
+        $this->data['txn_ids_str']  = $txn_ids_str;
+        $this->load->view('app/walkin/print_grouped_receipt', $this->data);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+     * RECEIPT (single — legacy)
      * ═══════════════════════════════════════════════════════ */
 
     public function receipt($txn_id = 0)
