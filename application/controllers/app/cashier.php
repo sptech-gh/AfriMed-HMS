@@ -188,6 +188,34 @@ class Cashier extends General
 			return;
 		}
 
+		// Closed encounter bypass check
+		$iop_id = '';
+		$patient_no = '';
+		$inv = $this->db->get_where('iop_billing', array('invoice_no' => $invoice_no, 'InActive' => 0))->row();
+		if ($inv) {
+			$iop_id = isset($inv->iop_id) ? (string)$inv->iop_id : '';
+			$patient_no = isset($inv->patient_no) ? (string)$inv->patient_no : '';
+		}
+
+		$this->load->model('app/opd_model');
+		if ($iop_id !== '' && $this->opd_model->is_encounter_locked($iop_id)) {
+			$notes = '[CLOSED_ENCOUNTER_BYPASS] ' . $notes;
+			$_POST['notes'] = $notes;
+
+			$this->load->model('app/cashier_model');
+			$this->cashier_model->log_financial_audit(
+				'PAYMENT',
+				null,
+				$invoice_no,
+				$patient_no,
+				$amount,
+				null,
+				null,
+				'[CLOSED_ENCOUNTER_BYPASS] Payment processed for invoice: ' . $invoice_no,
+				$this->session->userdata('user_id')
+			);
+		}
+
 		$subject = null;
 		if ($this->db->field_exists('billing_subject_type', 'iop_billing') && $this->db->field_exists('billing_subject_id', 'iop_billing')) {
 			$this->db->select('billing_subject_type, billing_subject_id');
@@ -215,7 +243,9 @@ class Cashier extends General
 		}
 
 		if (isset($result['success']) && $result['success']) {
-			$this->session->set_flashdata('message', "<div class='alert alert-success'><i class='fa fa-check'></i> Payment of GHS " . number_format($amount, 2) . " recorded successfully. Receipt #" . $result['receipt_no'] . "</div>");
+			$receipt_no = isset($result['receipt_no']) ? (string)$result['receipt_no'] : '';
+			$this->cashier_model->trigger_dispatch_notifications($invoice_no, $receipt_no, $this->session->userdata('user_id'));
+			$this->session->set_flashdata('message', "<div class='alert alert-success'><i class='fa fa-check'></i> Payment of GHS " . number_format($amount, 2) . " recorded successfully. Receipt #" . $receipt_no . "</div>");
 		} else {
 			$this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-ban'></i> " . (isset($result['error']) ? $result['error'] : 'Payment failed') . "</div>");
 		}
@@ -373,8 +403,79 @@ class Cashier extends General
 		$this->data['patientInfo'] = $this->_receipt_customer_info($receipt);
 		$payload = $this->billing_model->build_receipt_print_payload((string)$receipt->invoice_no, (string)$receipt_no);
 		$this->data = array_merge($this->data, $payload);
+		$this->data['receipt'] = $receipt;
 
-		$this->load->view('app/opd/printOR', $this->data);
+		$this->load->view('app/cashier/thermal_receipt', $this->data);
+	}
+
+	/**
+	 * Print final thermal receipt with all items grouped by department
+	 */
+	public function thermal_final_receipt($invoice_no = '')
+	{
+		$invoice_no = trim((string)$invoice_no);
+		if ($invoice_no === '') {
+			redirect(base_url() . 'app/cashier/payments');
+			return;
+		}
+
+		$invoice = $this->cashier_model->get_invoice_details($invoice_no);
+		if (!$invoice) {
+			$this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-ban'></i> Invoice not found.</div>");
+			redirect(base_url() . 'app/cashier/payments');
+			return;
+		}
+
+		$this->data['companyInfo'] = $this->general_model->companyInfo();
+		$this->data['invoice'] = $invoice;
+		$this->data['patientInfo'] = $this->_receipt_customer_info((object)array('patient_no' => $invoice->patient_no, 'invoice_no' => $invoice_no));
+		
+		// Load items
+		$this->load->model('app/billing_model');
+		$this->data['items'] = $this->billing_model->detailsInv2($invoice_no);
+		
+		// Load payments
+		$this->data['payments'] = $this->cashier_model->get_invoice_payments($invoice_no);
+		
+		// Load dispatch notifications
+		$this->data['notifications'] = $this->cashier_model->get_dispatch_notifications($invoice_no);
+
+		$this->load->view('app/cashier/thermal_final_receipt', $this->data);
+	}
+
+	/**
+	 * Get dispatch status for AJAX live updates
+	 */
+	public function dispatch_status_json($invoice_no = '')
+	{
+		$invoice_no = trim((string)$invoice_no);
+		if ($invoice_no === '') {
+			echo json_encode(array());
+			return;
+		}
+		$notifs = $this->cashier_model->get_dispatch_notifications($invoice_no);
+		echo json_encode($notifs);
+	}
+
+	/**
+	 * Mark a department dispatch notification as completed
+	 */
+	public function mark_dispatched()
+	{
+		$notif_id = (int)$this->input->post('notification_id');
+		$redirect_url = $this->input->post('redirect_url');
+		
+		if ($notif_id > 0) {
+			$user_id = $this->session->userdata('user_id');
+			$this->cashier_model->mark_notification_dispatched($notif_id, $user_id);
+			$this->session->set_flashdata('message', "<div class='alert alert-success'><i class='fa fa-check'></i> Patient cleared and marked as processed.</div>");
+		}
+
+		if ($redirect_url) {
+			redirect($redirect_url);
+		} else {
+			redirect(base_url() . 'app/dashboard');
+		}
 	}
 
 	/**
@@ -475,6 +576,47 @@ class Cashier extends General
 			return;
 		}
 
+		// Closed encounter bypass check
+		$iop_id = '';
+		$patient_no = '';
+		$invoice_no = '';
+		$amount = 0.00;
+		$rec = $this->db->get_where('iop_receipt', array('receipt_no' => $receipt_no))->row();
+		if ($rec) {
+			$iop_id = isset($rec->iop_id) ? (string)$rec->iop_id : '';
+			$patient_no = isset($rec->patient_no) ? (string)$rec->patient_no : '';
+			$invoice_no = isset($rec->invoice_no) ? (string)$rec->invoice_no : '';
+			$amount = isset($rec->amountPaid) ? (float)$rec->amountPaid : 0.00;
+		}
+		if ($iop_id === '' && $invoice_no !== '') {
+			$inv = $this->db->get_where('iop_billing', array('invoice_no' => $invoice_no))->row();
+			if ($inv) {
+				$iop_id = isset($inv->iop_id) ? (string)$inv->iop_id : '';
+				if ($patient_no === '') {
+					$patient_no = isset($inv->patient_no) ? (string)$inv->patient_no : '';
+				}
+			}
+		}
+
+		$this->load->model('app/opd_model');
+		if ($iop_id !== '' && $this->opd_model->is_encounter_locked($iop_id)) {
+			$reason = '[CLOSED_ENCOUNTER_BYPASS] ' . $reason;
+			$_POST['void_reason'] = $reason;
+
+			$this->load->model('app/cashier_model');
+			$this->cashier_model->log_financial_audit(
+				'VOID',
+				$receipt_no,
+				$invoice_no,
+				$patient_no,
+				$amount,
+				null,
+				null,
+				'[CLOSED_ENCOUNTER_BYPASS] Payment voided for receipt: ' . $receipt_no,
+				$this->session->userdata('user_id')
+			);
+		}
+
 		$result = $this->cashier_model->void_payment($receipt_no, $reason, $this->session->userdata('user_id'));
 
 		if ($result['success']) {
@@ -523,6 +665,45 @@ class Cashier extends General
 			$this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-ban'></i> Receipt number, refund amount and reason are required.</div>");
 			redirect(base_url() . 'app/cashier/payments');
 			return;
+		}
+
+		// Closed encounter bypass check
+		$iop_id = '';
+		$patient_no = '';
+		$invoice_no = '';
+		$rec = $this->db->get_where('iop_receipt', array('receipt_no' => $receipt_no))->row();
+		if ($rec) {
+			$iop_id = isset($rec->iop_id) ? (string)$rec->iop_id : '';
+			$patient_no = isset($rec->patient_no) ? (string)$rec->patient_no : '';
+			$invoice_no = isset($rec->invoice_no) ? (string)$rec->invoice_no : '';
+		}
+		if ($iop_id === '' && $invoice_no !== '') {
+			$inv = $this->db->get_where('iop_billing', array('invoice_no' => $invoice_no))->row();
+			if ($inv) {
+				$iop_id = isset($inv->iop_id) ? (string)$inv->iop_id : '';
+				if ($patient_no === '') {
+					$patient_no = isset($inv->patient_no) ? (string)$inv->patient_no : '';
+				}
+			}
+		}
+
+		$this->load->model('app/opd_model');
+		if ($iop_id !== '' && $this->opd_model->is_encounter_locked($iop_id)) {
+			$reason = '[CLOSED_ENCOUNTER_BYPASS] ' . $reason;
+			$_POST['refund_reason'] = $reason;
+
+			$this->load->model('app/cashier_model');
+			$this->cashier_model->log_financial_audit(
+				'REFUND',
+				$refund_receipt_no,
+				$invoice_no,
+				$patient_no,
+				$amount,
+				null,
+				null,
+				'[CLOSED_ENCOUNTER_BYPASS] Payment refunded for receipt: ' . $receipt_no,
+				$this->session->userdata('user_id')
+			);
 		}
 
 		$orig = $this->cashier_model->get_receipt($receipt_no);
@@ -681,6 +862,13 @@ class Cashier extends General
 		$patient_no = trim((string)urldecode((string)$patient_no));
 		if ($iop_id === '' || $patient_no === '') {
 			$this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-ban'></i> Missing visit ID or patient number.</div>");
+			redirect(base_url() . 'app/cashier/billing_queue');
+			return;
+		}
+
+		$this->load->model('app/opd_model');
+		if ($this->opd_model->is_encounter_locked($iop_id)) {
+			$this->session->set_flashdata('message', "<div class='alert alert-danger'><i class='fa fa-ban'></i> Cannot generate invoice: The patient encounter is closed/locked.</div>");
 			redirect(base_url() . 'app/cashier/billing_queue');
 			return;
 		}

@@ -136,6 +136,9 @@ class Pharmacy extends General
 		$this->data['filters'] = $filters;
 		$this->data['message'] = $this->session->flashdata('message');
 
+		$this->load->model('app/cashier_model');
+		$this->data['dispatch_notifications'] = $this->cashier_model->get_pending_dept_notifications('PHARMACY');
+
 		try {
 			$this->pharmacy_model->reconcile_pharmacy_billing_queue_from_paid_invoices(50, $this->session->userdata('user_id'));
 		} catch (Throwable $e) {

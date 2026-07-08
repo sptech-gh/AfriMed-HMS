@@ -1954,6 +1954,10 @@ class Laboratory extends General
 		$this->data['orphaned_count'] = $hasAdminAccess ? (int)$this->laboratory_model->count_orphaned_lab_requests() : 0;
 		$this->data['pagination'] = $this->pagination->create_links();
 		$this->data['message'] = $this->session->flashdata('message');
+
+		$this->load->model('app/cashier_model');
+		$this->data['dispatch_notifications'] = $this->cashier_model->get_pending_dept_notifications('LABORATORY');
+
 		$this->load->view('app/laboratory/lab_queue', $this->data);
 	}
 

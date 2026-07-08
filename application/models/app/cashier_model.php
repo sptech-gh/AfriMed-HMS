@@ -116,6 +116,29 @@ class Cashier_model extends CI_Model
 			");
 		}
 
+		if (!$this->table_exists('payment_dispatch_notifications')) {
+			$this->db->query("
+				CREATE TABLE IF NOT EXISTS payment_dispatch_notifications (
+					notification_id INT AUTO_INCREMENT PRIMARY KEY,
+					invoice_no VARCHAR(50) NOT NULL,
+					receipt_no VARCHAR(50) NOT NULL,
+					patient_no VARCHAR(25) NOT NULL,
+					patient_name VARCHAR(255),
+					department VARCHAR(50) NOT NULL,
+					item_details TEXT,
+					status ENUM('PENDING', 'DISPATCHED', 'CANCELLED') DEFAULT 'PENDING',
+					created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+					dispatched_at DATETIME,
+					dispatched_by VARCHAR(25),
+					InActive TINYINT(1) DEFAULT 0,
+					INDEX idx_invoice (invoice_no),
+					INDEX idx_receipt (receipt_no),
+					INDEX idx_patient (patient_no),
+					INDEX idx_dept_status (department, status)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+			");
+		}
+
 		$this->_ensure_cashier_performance_indexes();
 
 		mark_schema_run('cashier_schema');
@@ -1106,37 +1129,94 @@ class Cashier_model extends CI_Model
 	 */
 	public function log_financial_audit($action_type, $receipt_no, $invoice_no, $patient_no, $amount, $balance_before, $balance_after, $description, $performed_by)
 	{
-		// Ensure table exists before attempting insert
-		if (!$this->table_exists('financial_audit_log')) {
-			// Try to create it
-			$this->ensure_cashier_schema();
-			// If still doesn't exist, skip logging silently
+		static $schema_done = false;
+		static $has_action_type = false;
+		static $has_description = false;
+		static $has_notes = false;
+		static $has_event_type = false;
+		static $has_iop_id = false;
+
+		if (!$schema_done) {
+			// Ensure table exists before attempting insert
 			if (!$this->table_exists('financial_audit_log')) {
-				return false;
+				// Try to create it
+				$this->ensure_cashier_schema();
 			}
+			
+			// Check if action_type column exists (for older table versions)
+			if ($this->table_exists('financial_audit_log') && !$this->column_exists('financial_audit_log', 'action_type')) {
+				$old_debug = isset($this->db->db_debug) ? $this->db->db_debug : null;
+				$this->db->db_debug = false;
+				$this->db->query("ALTER TABLE `financial_audit_log` ADD COLUMN `action_type` ENUM('PAYMENT', 'VOID', 'REFUND', 'ADJUSTMENT', 'CORRECTION') DEFAULT 'PAYMENT'");
+				$this->db->query("ALTER TABLE `financial_audit_log` ADD COLUMN `receipt_no` VARCHAR(50)");
+				$this->db->query("ALTER TABLE `financial_audit_log` ADD COLUMN `invoice_no` VARCHAR(50)");
+				$this->db->query("ALTER TABLE `financial_audit_log` ADD COLUMN `balance_before` DECIMAL(12,2)");
+				$this->db->query("ALTER TABLE `financial_audit_log` ADD COLUMN `balance_after` DECIMAL(12,2)");
+				$this->db->query("ALTER TABLE `financial_audit_log` ADD COLUMN `description` TEXT");
+				$this->db->query("ALTER TABLE `financial_audit_log` ADD COLUMN `ip_address` VARCHAR(45)");
+				if ($this->column_exists('financial_audit_log', 'event_type')) {
+					$this->db->query("ALTER TABLE `financial_audit_log` MODIFY COLUMN `event_type` VARCHAR(50) NULL");
+				}
+				if ($old_debug !== null) { $this->db->db_debug = $old_debug; }
+			}
+
+			$has_action_type = $this->column_exists('financial_audit_log', 'action_type');
+			$has_description = $this->column_exists('financial_audit_log', 'description');
+			$has_notes = $this->column_exists('financial_audit_log', 'notes');
+			$has_event_type = $this->column_exists('financial_audit_log', 'event_type');
+			$has_iop_id = $this->column_exists('financial_audit_log', 'iop_id');
+
+			$schema_done = true;
 		}
-		
-		// Check if action_type column exists (for older table versions)
-		if (!$this->column_exists('financial_audit_log', 'action_type')) {
+
+		if (!$has_action_type) {
 			return false;
 		}
 		
 		$ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'CLI';
 		
+		$insert_data = array(
+			'action_type' => $action_type,
+			'receipt_no' => $receipt_no,
+			'invoice_no' => $invoice_no,
+			'patient_no' => $patient_no,
+			'amount' => $amount,
+			'balance_before' => $balance_before,
+			'balance_after' => $balance_after,
+			'performed_by' => $performed_by,
+			'performed_at' => date('Y-m-d H:i:s'),
+			'ip_address' => $ip
+		);
+
+		if ($has_description) {
+			$insert_data['description'] = $description;
+		}
+		if ($has_notes) {
+			$insert_data['notes'] = $description;
+		}
+		if ($has_event_type) {
+			$insert_data['event_type'] = $action_type;
+		}
+		if ($has_iop_id) {
+			$iop_id_resolved = '';
+			if (isset($_POST['opd_no']) && trim((string)$_POST['opd_no']) !== '') {
+				$iop_id_resolved = trim((string)$_POST['opd_no']);
+			} elseif (isset($_POST['iop_id']) && trim((string)$_POST['iop_id']) !== '') {
+				$iop_id_resolved = trim((string)$_POST['iop_id']);
+			}
+			if ($iop_id_resolved === '' && $invoice_no !== '') {
+				$inv = $this->db->get_where('iop_billing', array('invoice_no' => $invoice_no))->row();
+				if ($inv) {
+					$iop_id_resolved = isset($inv->iop_id) ? (string)$inv->iop_id : '';
+				}
+			}
+			if ($iop_id_resolved !== '') {
+				$insert_data['iop_id'] = $iop_id_resolved;
+			}
+		}
+
 		try {
-			return $this->db->insert('financial_audit_log', array(
-				'action_type' => $action_type,
-				'receipt_no' => $receipt_no,
-				'invoice_no' => $invoice_no,
-				'patient_no' => $patient_no,
-				'amount' => $amount,
-				'balance_before' => $balance_before,
-				'balance_after' => $balance_after,
-				'description' => $description,
-				'performed_by' => $performed_by,
-				'performed_at' => date('Y-m-d H:i:s'),
-				'ip_address' => $ip
-			));
+			return $this->db->insert('financial_audit_log', $insert_data);
 		} catch (Exception $e) {
 			// Log error silently - don't break payment flow for audit logging issues
 			log_message('error', 'Financial audit log failed: ' . $e->getMessage());
@@ -1234,5 +1314,143 @@ class Cashier_model extends CI_Model
 		$this->db->limit($limit, $offset);
 		
 		return $this->db->get()->result();
+	}
+
+	/**
+	 * Trigger dispatch notifications for an invoice payment
+	 */
+	public function trigger_dispatch_notifications($invoice_no, $receipt_no, $cashier_id)
+	{
+		$this->ensure_cashier_schema();
+
+		// Fetch invoice details
+		$invoice = $this->get_invoice_details($invoice_no);
+		if (!$invoice) return false;
+
+		$patient_no = $invoice->patient_no;
+		$patient_name = $invoice->patient_name;
+
+		// Fetch invoice line items
+		$this->load->model('app/billing_model');
+		$items = $this->billing_model->detailsInv2($invoice_no);
+		if (empty($items)) return false;
+
+		// Group items by department
+		$groups = array();
+		foreach ($items as $item) {
+			$raw_mod = isset($item->source_module) ? strtoupper(trim((string)$item->source_module)) : '';
+			
+			// Try to deduce from bill_name or categories if source_module is empty
+			if ($raw_mod === '') {
+				$bill_name_lower = strtolower($item->bill_name);
+				if (strpos($bill_name_lower, 'lab') !== false || strpos($bill_name_lower, 'test') !== false) {
+					$raw_mod = 'LABORATORY';
+				} elseif (strpos($bill_name_lower, 'drug') !== false || strpos($bill_name_lower, 'tablet') !== false || strpos($bill_name_lower, 'syrup') !== false || strpos($bill_name_lower, 'capsule') !== false) {
+					$raw_mod = 'PHARMACY';
+				} elseif (strpos($bill_name_lower, 'scan') !== false || strpos($bill_name_lower, 'ultrasound') !== false || strpos($bill_name_lower, 'sono') !== false) {
+					$raw_mod = 'SONOGRAPHY';
+				} elseif (strpos($bill_name_lower, 'xray') !== false || strpos($bill_name_lower, 'x-ray') !== false || strpos($bill_name_lower, 'radiology') !== false) {
+					$raw_mod = 'RADIOLOGY';
+				} elseif (strpos($bill_name_lower, 'procedure') !== false) {
+					$raw_mod = 'PROCEDURE';
+				} elseif (strpos($bill_name_lower, 'consultation') !== false || strpos($bill_name_lower, 'opd fee') !== false) {
+					$raw_mod = 'CONSULTATION';
+				} else {
+					$raw_mod = 'OTHER';
+				}
+			}
+
+			// Normalize department name
+			$dept = 'OTHER';
+			if (in_array($raw_mod, array('LAB', 'LABORATORY'))) {
+				$dept = 'LABORATORY';
+			} elseif ($raw_mod === 'PHARMACY') {
+				$dept = 'PHARMACY';
+			} elseif ($raw_mod === 'SONOGRAPHY') {
+				$dept = 'SONOGRAPHY';
+			} elseif ($raw_mod === 'RADIOLOGY') {
+				$dept = 'RADIOLOGY';
+			} elseif ($raw_mod === 'PROCEDURE') {
+				$dept = 'PROCEDURE';
+			} elseif ($raw_mod === 'CONSULTATION') {
+				$dept = 'CONSULTATION';
+			}
+
+			$groups[$dept][] = $item->bill_name . ' (Qty: ' . $item->qty . ')';
+		}
+
+		// Insert notifications for each department group
+		foreach ($groups as $dept => $itemList) {
+			// Check if already exists for this invoice and department
+			$this->db->where(array(
+				'invoice_no' => $invoice_no,
+				'department' => $dept,
+				'InActive'   => 0
+			));
+			$existing = $this->db->get('payment_dispatch_notifications')->row();
+
+			if (!$existing) {
+				$this->db->insert('payment_dispatch_notifications', array(
+					'invoice_no'   => $invoice_no,
+					'receipt_no'   => $receipt_no,
+					'patient_no'   => $patient_no,
+					'patient_name' => $patient_name,
+					'department'   => $dept,
+					'item_details' => implode(', ', $itemList),
+					'status'       => 'PENDING',
+					'created_at'   => date('Y-m-d H:i:s'),
+					'InActive'     => 0
+				));
+			} else {
+				// Update with the latest receipt no
+				$this->db->where('notification_id', $existing->notification_id);
+				$this->db->update('payment_dispatch_notifications', array(
+					'receipt_no' => $receipt_no
+				));
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Get dispatch notifications for an invoice
+	 */
+	public function get_dispatch_notifications($invoice_no)
+	{
+		$this->ensure_cashier_schema();
+		$this->db->where(array('invoice_no' => $invoice_no, 'InActive' => 0));
+		$this->db->order_by('created_at', 'ASC');
+		return $this->db->get('payment_dispatch_notifications')->result();
+	}
+
+	/**
+	 * Mark a notification as dispatched (completed/acknowledged by dept staff)
+	 */
+	public function mark_notification_dispatched($notification_id, $user_id)
+	{
+		$this->ensure_cashier_schema();
+		$this->db->where('notification_id', $notification_id);
+		return $this->db->update('payment_dispatch_notifications', array(
+			'status'        => 'DISPATCHED',
+			'dispatched_at' => date('Y-m-d H:i:s'),
+			'dispatched_by' => $user_id
+		));
+	}
+
+	/**
+	 * Get pending dispatch notifications for a specific department
+	 */
+	public function get_pending_dept_notifications($department, $limit = 50)
+	{
+		$this->ensure_cashier_schema();
+		$this->db->where(array(
+			'department' => $department,
+			'status'     => 'PENDING',
+			'InActive'   => 0
+		));
+		$this->db->order_by('created_at', 'DESC');
+		$this->db->limit($limit);
+		return $this->db->get('payment_dispatch_notifications')->result();
 	}
 }

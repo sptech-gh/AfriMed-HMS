@@ -43,6 +43,50 @@
                 </div>
                 <?php endif; ?>
 
+                <!-- Cleared Patients Notification Banner -->
+                <?php if (isset($dispatch_notifications) && !empty($dispatch_notifications)): ?>
+                <div class="row" style="margin-bottom: 15px;">
+                    <div class="col-md-12">
+                        <div class="box box-solid box-success">
+                            <div class="box-header">
+                                <h3 class="box-title"><i class="fa fa-bell"></i> Cleared Patients — Awaiting Radiology Services</h3>
+                            </div>
+                            <div class="box-body no-padding">
+                                <table class="table table-striped table-condensed table-hover" style="margin-bottom:0;">
+                                    <thead>
+                                        <tr>
+                                            <th>Patient Name</th>
+                                            <th>Patient ID</th>
+                                            <th>Billed Items (Cleared)</th>
+                                            <th>Cleared At</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($dispatch_notifications as $notif): ?>
+                                        <tr>
+                                            <td><strong><?php echo htmlspecialchars($notif->patient_name); ?></strong></td>
+                                            <td><code><?php echo htmlspecialchars($notif->patient_no); ?></code></td>
+                                            <td><?php echo htmlspecialchars($notif->item_details); ?></td>
+                                            <td><?php echo date('M d, Y H:i', strtotime($notif->created_at)); ?></td>
+                                            <td>
+                                                <form method="post" action="<?php echo base_url(); ?>app/cashier/mark_dispatched" style="display:inline;">
+                                                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                                                    <input type="hidden" name="notification_id" value="<?php echo $notif->notification_id; ?>">
+                                                    <input type="hidden" name="redirect_url" value="<?php echo current_url(); ?>">
+                                                    <button type="submit" class="btn btn-xs btn-success"><i class="fa fa-check"></i> Process &amp; Mark Completed</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <div class="box box-warning">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-clock-o"></i> Pending Orders</h3>

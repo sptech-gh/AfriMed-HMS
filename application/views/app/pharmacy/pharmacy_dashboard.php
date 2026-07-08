@@ -683,6 +683,50 @@
             <section class="content">
                 <?php echo isset($message) ? $message : ''; ?>
 
+                <!-- Cleared Patients Notification Banner -->
+                <?php if (isset($dispatch_notifications) && !empty($dispatch_notifications)): ?>
+                <div class="row" style="margin-bottom: 15px;">
+                    <div class="col-md-12">
+                        <div class="box box-solid box-success" style="box-shadow: var(--shadow); border-radius: var(--radius); overflow: hidden;">
+                            <div class="box-header" style="background-color: var(--success); color: #fff;">
+                                <h3 class="box-title"><i class="fa fa-bell"></i> Cleared Patients — Awaiting Pharmacy Services</h3>
+                            </div>
+                            <div class="box-body no-padding">
+                                <table class="table table-striped table-condensed table-hover" style="margin-bottom:0;">
+                                    <thead>
+                                        <tr>
+                                            <th style="padding: 10px;">Patient Name</th>
+                                            <th style="padding: 10px;">Patient ID</th>
+                                            <th style="padding: 10px;">Billed Items (Cleared)</th>
+                                            <th style="padding: 10px;">Cleared At</th>
+                                            <th style="padding: 10px;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($dispatch_notifications as $notif): ?>
+                                        <tr>
+                                            <td style="padding: 10px; vertical-align: middle;"><strong><?php echo htmlspecialchars($notif->patient_name); ?></strong></td>
+                                            <td style="padding: 10px; vertical-align: middle;"><code><?php echo htmlspecialchars($notif->patient_no); ?></code></td>
+                                            <td style="padding: 10px; vertical-align: middle;"><?php echo htmlspecialchars($notif->item_details); ?></td>
+                                            <td style="padding: 10px; vertical-align: middle;"><?php echo date('M d, Y H:i', strtotime($notif->created_at)); ?></td>
+                                            <td style="padding: 10px; vertical-align: middle;">
+                                                <form method="post" action="<?php echo base_url(); ?>app/cashier/mark_dispatched" style="display:inline;">
+                                                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                                                    <input type="hidden" name="notification_id" value="<?php echo $notif->notification_id; ?>">
+                                                    <input type="hidden" name="redirect_url" value="<?php echo current_url(); ?>">
+                                                    <button type="submit" class="btn btn-xs btn-success"><i class="fa fa-check"></i> Process &amp; Mark Completed</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- ===== PHASE 6A/6C: View Toggle ===== -->
                 <div class="view-toggle-bar">
                     <button class="vtb-btn active" onclick="switchView('patients')" id="btnViewPatients">

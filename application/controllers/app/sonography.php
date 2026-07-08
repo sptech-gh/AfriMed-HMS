@@ -716,6 +716,8 @@ class Sonography extends General
 		$nav .= "</div></form>";
 		$this->data['message'] = $nav . (string)$this->session->flashdata('message');
 		$this->data['table'] = $this->table->generate();
+		$this->load->model('app/cashier_model');
+		$this->data['dispatch_notifications'] = $this->cashier_model->get_pending_dept_notifications('SONOGRAPHY');
 		$this->load->view('app/laboratory/index', $this->data);
 	}
 

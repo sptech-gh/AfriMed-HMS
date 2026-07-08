@@ -39,7 +39,10 @@ header("Pragma: no-cache");
                             <div class="box-header with-border">
                                 <h3 class="box-title"><i class="fa fa-file-text-o"></i> Invoice #<?php echo $invoice->invoice_no; ?></h3>
                                 <div class="box-tools pull-right">
-                                    <a href="<?php echo base_url();?>app/billing/billingpdf?invoice_no=<?php echo $invoice->invoice_no; ?>" class="btn btn-sm btn-default" target="_blank"><i class="fa fa-print"></i> Print</a>
+                                    <?php if (isset($payments) && count($payments) > 0) { ?>
+                                        <a href="<?php echo base_url();?>app/cashier/thermal_final_receipt/<?php echo $invoice->invoice_no; ?>" class="btn btn-sm btn-success" target="_blank"><i class="fa fa-print"></i> Print Final Receipt (Thermal)</a>
+                                    <?php } ?>
+                                    <a href="<?php echo base_url();?>app/billing/billingpdf?invoice_no=<?php echo $invoice->invoice_no; ?>" class="btn btn-sm btn-default" target="_blank"><i class="fa fa-print"></i> Print Invoice PDF</a>
                                 </div>
                             </div>
                             <div class="box-body">
@@ -256,6 +259,17 @@ header("Pragma: no-cache");
                             </div>
                         </div>
                         <?php } ?>
+                        <!-- Service Dispatch Clearance Status -->
+                        <div class="box box-warning">
+                            <div class="box-header with-border">
+                                <h3 class="box-title"><i class="fa fa-send"></i> Department Service Clearance / Dispatch Status</h3>
+                            </div>
+                            <div class="box-body">
+                                <div id="dispatch-status-container">
+                                    <p class="text-center text-muted">Loading dispatch status...</p>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
 
@@ -389,6 +403,46 @@ header("Pragma: no-cache");
             $('#refund_receipt_no').val(key);
             $('#refundModal').modal('show');
         });
+
+        function updateDispatchStatus() {
+            $.getJSON('<?php echo base_url();?>app/cashier/dispatch_status_json/<?php echo $invoice->invoice_no; ?>', function(data) {
+                var html = '';
+                if (data && data.length > 0) {
+                    html += '<div class="table-responsive"><table class="table table-striped table-condensed">';
+                    html += '<thead><tr><th>Department</th><th>Items Billed</th><th>Status</th><th>Clearance Date</th></tr></thead><tbody>';
+                    $.each(data, function(i, item) {
+                        var statusLabel = '';
+                        if (item.status === 'PENDING') {
+                            statusLabel = '<span class="label label-warning"><i class="fa fa-clock-o"></i> PENDING PROCEED</span>';
+                        } else if (item.status === 'DISPATCHED') {
+                            statusLabel = '<span class="label label-success"><i class="fa fa-check"></i> CLEARED / PROCESSED</span>';
+                        } else {
+                            statusLabel = '<span class="label label-danger">' + item.status + '</span>';
+                        }
+                        
+                        var dispatchInfo = '';
+                        if (item.status === 'DISPATCHED' && item.dispatched_at) {
+                            dispatchInfo = '<br><small class="text-muted">Cleared At: ' + item.dispatched_at + '</small>';
+                        }
+
+                        html += '<tr>';
+                        html += '<td><strong>' + item.department + '</strong></td>';
+                        html += '<td>' + item.item_details + '</td>';
+                        html += '<td>' + statusLabel + dispatchInfo + '</td>';
+                        html += '<td>' + item.created_at + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                } else {
+                    html = '<p class="text-center text-muted">No departments cleared/notified for this invoice yet. Clearance notifications are triggered upon recording payment.</p>';
+                }
+                $('#dispatch-status-container').html(html);
+            });
+        }
+        
+        // Initial load and poll every 5 seconds
+        updateDispatchStatus();
+        setInterval(updateDispatchStatus, 5000);
     });
     </script>
 </body>
